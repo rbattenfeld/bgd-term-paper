@@ -5,9 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -15,9 +13,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
 import com.six_group.dgi.dsx.bigdata.poc.parsing.ExtractValueUtil;
@@ -51,28 +53,42 @@ public class PreTradeLoader {
 	public static void main(String[] args) {
 		Cluster cluster = null;
 		try {
-		    cluster = Cluster.builder().addContactPoint(args[0]).build();
-		    final Session session = cluster.connect();
 			final int threadCount = Integer.valueOf(args[1]); 
 			final int batchSize = Integer.valueOf(args[2]);
 			int timeOffsetInDays = 0;
 			int timeOffsetInHours = 0;
 			BigDecimal spreadVariant = BigDecimal.ZERO;
 			boolean generateTables = false;
-			if (args.length > 3) {
-				timeOffsetInDays = Integer.valueOf(args[3]); 
-			}
 			if (args.length > 4) {
-				timeOffsetInHours = Integer.valueOf(args[4]); 
+				timeOffsetInDays = Integer.valueOf(args[4]); 
 			}
 			if (args.length > 5) {
-				generateTables = Boolean.valueOf(args[5]); 
+				timeOffsetInHours = Integer.valueOf(args[5]); 
 			}
 			if (args.length > 6) {
-				spreadVariant = new BigDecimal(args[6]); 
+				generateTables = Boolean.valueOf(args[6]); 
 			}
+			if (args.length > 7) {
+				spreadVariant = new BigDecimal(args[7]); 
+			}
+			
+			final int maxRequestsPerConnection = 128;
+			final int maxConnections = threadCount / maxRequestsPerConnection + 1;
+			final PoolingOptions pools = new PoolingOptions();
+	        pools.setNewConnectionThreshold(HostDistance.LOCAL, threadCount);
+	        pools.setCoreConnectionsPerHost(HostDistance.LOCAL, maxConnections);
+	        pools.setMaxConnectionsPerHost(HostDistance.LOCAL, maxConnections);
+	        pools.setCoreConnectionsPerHost(HostDistance.REMOTE, maxConnections);
+	        pools.setMaxConnectionsPerHost(HostDistance.REMOTE, maxConnections);
+	        
+	        cluster = Cluster.builder().addContactPoint(args[0])
+	        		.withPoolingOptions(pools)
+                    .withSocketOptions(new SocketOptions().setTcpNoDelay(true))
+                    .build();
+		    final Session session = cluster.connect();		    
+			printCassandraVersion(session, cluster.getMetadata());
 	        final PreTradeLoader loader = new PreTradeLoader(session, threadCount, batchSize, timeOffsetInDays, timeOffsetInHours, generateTables, spreadVariant);
-	        loader.loadFavFile("/home/rbattenfeld/Documents/demo.fav.txt");
+	        loader.loadFavFile(args[3]);
 		} finally {
 		    if (cluster != null) {
 		    	cluster.close();
@@ -96,14 +112,7 @@ public class PreTradeLoader {
 		_mapperManager = new MappingManager(_session);
 		_mapperSpread = _mapperManager.mapper(Spread.class);
 		_mapperTrade = _mapperManager.mapper(Trade.class);
-		printCassandraVersion();
 	}	
-	
-	private void printCassandraVersion() {
-		final ResultSet rs = _session.execute("select release_version from system.local");
-	    final Row row = rs.one();
-	    System.out.println("Connected to cassandra. Version:" + row.getString("Release_version"));
-	}
 
 	public void loadFavFile(final String pathToFile) {
 		final int maxLinesPushed = _batchSize * _threadCount * 10;
@@ -216,6 +225,13 @@ public class PreTradeLoader {
 				ExtractValueUtil.INSTANCE.sleep(500);
 			}
 		}
+	}
+
+	private static void printCassandraVersion(final Session session, final Metadata metadata) {
+		final ResultSet rs = session.execute("select release_version from system.local");
+	    final Row row = rs.one();
+	    System.out.println(String.format("Connected to cluster '%s' on %s.", metadata.getClusterName(), metadata.getAllHosts())); 
+	    System.out.println("Running with cassandra version:" + row.getString("Release_version"));
 	}
 	
 	private class MonitorRunnable implements Runnable {
