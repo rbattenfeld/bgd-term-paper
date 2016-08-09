@@ -28,17 +28,35 @@ public enum ExtractValueUtil {
 		}
 	}
 	
+    public Date addHours(final Calendar cal1, final Calendar cal2, final Date date, final int hours) {
+        cal1.setTime(date);
+        cal1.set(Calendar.YEAR, cal2.get(Calendar.YEAR));
+        cal1.set(Calendar.MONTH, cal2.get(Calendar.MONTH));
+        cal1.set(Calendar.DAY_OF_MONTH, cal2.get(Calendar.DAY_OF_MONTH));
+        cal1.add(Calendar.HOUR, hours);                 
+        return cal1.getTime();
+    }
+	   
 	public Date addDays(final Date date, final int days) {
         final GregorianCalendar cal = new GregorianCalendar();
         cal.setTime(date);
+        cal.add(Calendar.DATE, days);      
         cal.set(Calendar.HOUR_OF_DAY, 0);
 		cal.set(Calendar.MINUTE, 0);
 		cal.set(Calendar.SECOND, 0);
-		cal.set(Calendar.MILLISECOND, 0);
-        cal.add(Calendar.DATE, days);                 
+		cal.set(Calendar.MILLISECOND, 0);           
         return cal.getTime();
     }
-	
+	   
+    public Date zeroMinSecMilli(final Date date) {
+        final GregorianCalendar cal = new GregorianCalendar();
+        cal.setTime(date);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);           
+        return cal.getTime();
+    }
+    
 	public void sleep(final long sleepTime) {
 		try {
 			Thread.currentThread();
@@ -47,4 +65,9 @@ public enum ExtractValueUtil {
 			e.printStackTrace();
 		}			
 	}
+	
+
+    public String getTime(final String line) {
+        return line.substring(3, 15);
+    }
 }

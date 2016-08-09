@@ -1,8 +1,12 @@
 package com.six_group.dgi.dsx.bigdata.poc.quoting;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import com.six_group.dgi.dsx.bigdata.poc.parsing.ExtractValueUtil;
 
 public class QuoteBook {
 	public static final BigDecimal _TWO = BigDecimal.valueOf(2);
@@ -10,6 +14,10 @@ public class QuoteBook {
     private final ConcurrentMap<Long, QuoteLeg> _askMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, QuoteLeg> _bidMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Long> _matchingMap = new ConcurrentHashMap<>();
+    
+    final Map<String, QuoteLeg> _askMatchingMap = new HashMap<>();
+    final Map<String, QuoteLeg> _bidMatchingMap = new HashMap<>();
+    
     private final String _security;
     private long _matchingCount = 0;
     private QuoteLeg _bestAskPriceLegCurrent = null;
@@ -134,33 +142,69 @@ public class QuoteBook {
 		}
     }
     
-    private boolean tryToMatch(final QuoteLeg leg) {
-		final String ownKey = leg.getSide() + leg.getKey();
-		final String otherKey = getOtherKey(leg);
-		final Long id = _matchingMap.remove(otherKey);
-		boolean IsMatched = false;
-		if (id != null) {
-			final QuoteLeg otherLeg = findQuote(id);
-			if (otherLeg != null) {
-				otherLeg.setOtherSide(leg);
-				leg.setOtherSide(otherLeg);
-				leg.setSpread(calculateSpread(leg));
-				leg.setBestAsk(_bestAskPriceLegCurrent.getPrice());
-				leg.setBestBid(_bestBidPriceLegCurrent.getPrice());
-				otherLeg.setSpread(leg.getSpread());
-				otherLeg.setBestAsk(_bestAskPriceLegCurrent.getPrice());
-				otherLeg.setBestBid(_bestBidPriceLegCurrent.getPrice());
-				IsMatched = true;
-				_matchingCount++;
-//				if (leg.getSpread().compareTo(BigDecimal.ZERO) == 0) {
-//					System.out.println("" + leg.getSide() + " " + leg.getPrice() + " " + leg.getOtherSide().getPrice());
-//				}
-			} else {
-				_matchingMap.put(ownKey, leg.getId());
-			}
-		} else {
-			_matchingMap.put(ownKey, leg.getId());
-		}
+    private boolean tryToMatch(final QuoteLeg leg) { 
+        boolean IsMatched = false;
+        final String key = leg.getKey();
+        if (leg.getSide().equals(QuoteLeg.ASK)) {            
+            final QuoteLeg matchingQuote = _bidMatchingMap.remove(key);
+            if (matchingQuote != null) {
+                matchingQuote.setOtherSide(leg);
+                leg.setOtherSide(matchingQuote);
+                leg.setSpread(calculateSpread(leg));
+                leg.setBestAsk(_bestAskPriceLegCurrent.getPrice());
+                leg.setBestBid(_bestBidPriceLegCurrent.getPrice());
+                matchingQuote.setSpread(leg.getSpread());
+                matchingQuote.setBestAsk(_bestAskPriceLegCurrent.getPrice());
+                matchingQuote.setBestBid(_bestBidPriceLegCurrent.getPrice());
+                IsMatched = true;
+                _matchingCount++;
+            } else {
+                _askMatchingMap.put(key, leg);
+            }
+        } else {
+            final QuoteLeg matchingQuote = _askMatchingMap.remove(key);
+            if (matchingQuote != null) {
+                matchingQuote.setOtherSide(leg);
+                leg.setOtherSide(matchingQuote);
+                leg.setSpread(calculateSpread(leg));
+                leg.setBestAsk(_bestAskPriceLegCurrent.getPrice());
+                leg.setBestBid(_bestBidPriceLegCurrent.getPrice());
+                matchingQuote.setSpread(leg.getSpread());
+                matchingQuote.setBestAsk(_bestAskPriceLegCurrent.getPrice());
+                matchingQuote.setBestBid(_bestBidPriceLegCurrent.getPrice());
+                IsMatched = true;
+                _matchingCount++;
+            } else {
+                _bidMatchingMap.put(key, leg);
+            }
+        } 
+        
+//		final String ownKey = leg.getSide() + leg.getKey();
+//		final String otherKey = getOtherKey(leg);
+//		final Long id = _matchingMap.remove(otherKey);
+//		boolean IsMatched = false;
+//		if (id != null) {
+//			final QuoteLeg otherLeg = findQuote(id);
+//			if (otherLeg != null) {
+//				otherLeg.setOtherSide(leg);
+//				leg.setOtherSide(otherLeg);
+//				leg.setSpread(calculateSpread(leg));
+//				leg.setBestAsk(_bestAskPriceLegCurrent.getPrice());
+//				leg.setBestBid(_bestBidPriceLegCurrent.getPrice());
+//				otherLeg.setSpread(leg.getSpread());
+//				otherLeg.setBestAsk(_bestAskPriceLegCurrent.getPrice());
+//				otherLeg.setBestBid(_bestBidPriceLegCurrent.getPrice());
+//				IsMatched = true;
+//				_matchingCount++;
+////				if (leg.getSpread().compareTo(BigDecimal.ZERO) == 0) {
+////					System.out.println("" + leg.getSide() + " " + leg.getPrice() + " " + leg.getOtherSide().getPrice());
+////				}
+//			} else {
+//				_matchingMap.put(ownKey, leg.getId());
+//			}
+//		} else {
+//			_matchingMap.put(ownKey, leg.getId());
+//		}
 		return IsMatched;
 	}
     
@@ -175,10 +219,14 @@ public class QuoteBook {
     
     public static BigDecimal calculateSpread(final QuoteLeg leg) {
     	final BigDecimal midPrice = leg.getPrice().add(leg.getOtherSide().getPrice()).divide(_TWO);
-    	if (leg.getSide().equals(QuoteLeg.ASK)) {
-    		return leg.getPrice().subtract(leg.getOtherSide().getPrice()).setScale(8, BigDecimal.ROUND_HALF_DOWN).divide(midPrice, BigDecimal.ROUND_HALF_DOWN);
+    	if (midPrice.compareTo(BigDecimal.ZERO) != 0) {
+        	if (leg.getSide().equals(QuoteLeg.ASK)) {
+        		return leg.getPrice().subtract(leg.getOtherSide().getPrice()).setScale(8, BigDecimal.ROUND_HALF_DOWN).divide(midPrice, BigDecimal.ROUND_HALF_DOWN);
+        	} else {
+        		return leg.getOtherSide().getPrice().subtract(leg.getPrice()).setScale(8, BigDecimal.ROUND_HALF_DOWN).divide(midPrice, BigDecimal.ROUND_HALF_DOWN);
+        	}
     	} else {
-    		return leg.getOtherSide().getPrice().subtract(leg.getPrice()).setScale(8, BigDecimal.ROUND_HALF_DOWN).divide(midPrice, BigDecimal.ROUND_HALF_DOWN);
-    	} 
+    	    return BigDecimal.ZERO;
+    	}
     }
 }

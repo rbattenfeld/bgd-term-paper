@@ -9,8 +9,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
@@ -25,13 +23,13 @@ import com.datastax.driver.mapping.MappingManager;
 import com.six_group.dgi.dsx.bigdata.poc.parsing.ExtractValueUtil;
 import com.six_group.dgi.dsx.bigdata.poc.parsing.FavFileMessageRunnable;
 import com.six_group.dgi.dsx.bigdata.poc.parsing.SecurityPartitioner;
+import com.six_group.dgi.dsx.bigdata.poc.persisting.CassandraPersister;
 import com.six_group.dgi.dsx.bigdata.poc.quoting.QuoteBooks;
 import com.six_group.dgi.dsx.bigdata.poc.quoting.Spread;
 import com.six_group.dgi.dsx.bigdata.poc.quoting.Trade;
 
 public class PreTradeLoader {
 	private final QuoteBooks _books = new QuoteBooks();
-	private final MonitorRunnable _monitorRunnable = new MonitorRunnable();
 	private final int _threadCount;
 	private final int _batchSize;
 	private final Session _session;
@@ -44,7 +42,6 @@ public class PreTradeLoader {
 	private final SecurityPartitioner _securityPartitioner;
 	private final ExecutorService _executorService;
 	private final BigDecimal _spreadVariant;
-	private Thread _monitorThread;
 	private int _lineCount = 0;
 	private long _startTime;
 	private long _stopTime;
@@ -57,6 +54,7 @@ public class PreTradeLoader {
 			final int batchSize = Integer.valueOf(args[2]);
 			int timeOffsetInDays = 0;
 			int timeOffsetInHours = 0;
+            int cassandraPort = 9042;
 			BigDecimal spreadVariant = BigDecimal.ZERO;
 			boolean generateTables = false;
 			if (args.length > 4) {
@@ -71,7 +69,9 @@ public class PreTradeLoader {
 			if (args.length > 7) {
 				spreadVariant = new BigDecimal(args[7]); 
 			}
-			
+            if (args.length > 8) {
+                cassandraPort = Integer.valueOf(args[8]); 
+            }
 			final int maxRequestsPerConnection = 128;
 			final int maxConnections = threadCount / maxRequestsPerConnection + 1;
 			final PoolingOptions pools = new PoolingOptions();
@@ -79,9 +79,9 @@ public class PreTradeLoader {
 	        pools.setCoreConnectionsPerHost(HostDistance.LOCAL, maxConnections);
 	        pools.setMaxConnectionsPerHost(HostDistance.LOCAL, maxConnections);
 	        pools.setCoreConnectionsPerHost(HostDistance.REMOTE, maxConnections);
-	        pools.setMaxConnectionsPerHost(HostDistance.REMOTE, maxConnections);
-	        
+	        pools.setMaxConnectionsPerHost(HostDistance.REMOTE, maxConnections);	        
 	        cluster = Cluster.builder().addContactPoint(args[0])
+	                .withPort(cassandraPort)
 	        		.withPoolingOptions(pools)
                     .withSocketOptions(new SocketOptions().setTcpNoDelay(true))
                     .build();
@@ -112,14 +112,13 @@ public class PreTradeLoader {
 		_mapperManager = new MappingManager(_session);
 		_mapperSpread = _mapperManager.mapper(Spread.class);
 		_mapperTrade = _mapperManager.mapper(Trade.class);
+//        _spreadUpdater = _mapperManager.createAccessor(SpreadUpdater.class);
 	}	
 
 	public void loadFavFile(final String pathToFile) {
-		final int maxLinesPushed = _batchSize * _threadCount * 10;
+		final int maxLinesPushed = _batchSize * _threadCount * 100;
 		_startTime = System.currentTimeMillis();
 		initBucketThreads();
-		_monitorThread = new Thread(_monitorRunnable);
-		_monitorThread.start();
 		try (final BufferedReader br = new BufferedReader(new FileReader(pathToFile))) {
 			String line;
 			while ((line = br.readLine()) != null) {
@@ -133,13 +132,23 @@ public class PreTradeLoader {
 				}
 			}
 			waitForCompletition(0);
-			_stopTime = System.currentTimeMillis();
-			_books.printBookStatistic();
-			System.out.println("Total Processing Time [ms]: " + (_stopTime - _startTime));
+			_stopTime = System.currentTimeMillis();			
+			final long totalOneSidedCount = getTotalOneSidedCount();
+            final long totalTwoSidedCount = getTotalTwoSidedCount();
+            final long totalTradeCount = getTotalTradeCount();
+            final long processingTime = _stopTime - _startTime;
+            final double msgPerSeconds = ((totalOneSidedCount + totalTwoSidedCount  + totalTradeCount) * 1000.0) / processingTime;
+			System.out.println(String.format("Current Day                : %s", _currentDate.toString()));
+            System.out.println(String.format("Total one sided legs       : %d", totalOneSidedCount));
+            System.out.println(String.format("Total two sided legs       : %d", totalTwoSidedCount));
+            System.out.println(String.format("Total delete messages      : %d", totalTradeCount));
+			System.out.println(String.format("Total created trades       : %d", getTotalTradeCount()));
+			System.out.println(String.format("Total Processing Time [ms] : %d", _stopTime - _startTime));
+            System.out.println(String.format("Average time [msg/s]       : %f", msgPerSeconds));
+            _books.printBookStatistic();
 		} catch (final IOException ex) {
 			ex.printStackTrace();
 		} finally {
-			_monitorRunnable.stop();	
 			joinAllThreads();
 		}
 	}
@@ -150,7 +159,7 @@ public class PreTradeLoader {
 
 	private void generateTable() {
 		_session.execute("DROP KEYSPACE IF EXISTS swx");
-		_session.execute("CREATE KEYSPACE swx WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}");
+		_session.execute("CREATE KEYSPACE swx WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2}");
 		_session.execute("CREATE TABLE swx.trade ("
 	    		+ "security TEXT, " 
 	    		+ "id BIGINT, "
@@ -162,7 +171,7 @@ public class PreTradeLoader {
 	    		+ "bidMemberOrg TEXT, "	
 	    		+ "askHouse TEXT, "
 	    		+ "bidHouse TEXT, "	
-	    		+ "origdate TIMESTAMP, "
+	    		+ "origdate TEXT, "
 	    		+ "origtime TIMESTAMP, "
 	    		+ "price DECIMAL, "
 	    		+ "volume BIGINT, "
@@ -172,14 +181,20 @@ public class PreTradeLoader {
 	    		+ "security TEXT, "
 	    		+ "id BIGINT, "
 	    		+ "house TEXT, "
-	    		+ "origdate TIMESTAMP, "
+                + "cur TEXT, "
+                + "type TEXT, "
+	    		+ "origdate TEXT, "
 	    		+ "origtime TIMESTAMP, "
+                + "deletetime TIMESTAMP, "
                 + "ask DECIMAL,"
                 + "bid DECIMAL,"
                 + "spread DECIMAL,"
                 + "bestask DECIMAL,"
                 + "bestbid DECIMAL,"
-	    		+ "PRIMARY KEY ((security, origdate), origtime, id))");
+                + "trade BOOLEAN,"
+                + "price DECIMAL, "
+                + "volume BIGINT, "
+	    		+ "PRIMARY KEY ((security, origdate), type, trade, origtime, id))");
     }
 	
 	private String getSecurity(final String line) {
@@ -192,7 +207,8 @@ public class PreTradeLoader {
 
 	private void initBucketThreads() {
 	    for (int i = 0; i < _threadCount; i++) {
-	    	final FavFileMessageRunnable runnable = new FavFileMessageRunnable(_mapperSpread, _mapperTrade, _books, _batchSize, _currentDate, _timeOffsetInHours, _spreadVariant);
+	        final CassandraPersister persistingService = new CassandraPersister(_mapperSpread, _mapperTrade);
+	    	final FavFileMessageRunnable runnable = new FavFileMessageRunnable(persistingService, _books, _batchSize, _currentDate, _timeOffsetInHours, _spreadVariant);
 	    	_messageProcessors.add(runnable);
 	    	_executorService.execute(runnable);
 	    }
@@ -202,11 +218,8 @@ public class PreTradeLoader {
 		for (final FavFileMessageRunnable runnable : _messageProcessors) {
 			runnable.stop();
 	    }
-		try {
-			_executorService.awaitTermination(5, TimeUnit.SECONDS);
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
-		}
+		 ExtractValueUtil.INSTANCE.sleep(5000);
+         _executorService.shutdown();
 	}
 
 	private void waitForCompletition(final int lowerBound) {
@@ -219,14 +232,45 @@ public class PreTradeLoader {
 		    }		
 			if (totalQueuesSize <= lowerBound) {
 				System.out.println("----- waitForCompletition done-");
-				_books.printBookStatistic();
 				return;
 			} else {
-				ExtractValueUtil.INSTANCE.sleep(500);
+				ExtractValueUtil.INSTANCE.sleep(50);
 			}
 		}
 	}
 
+	private long getTotalTradeCount() {
+	    long count = 0;
+	    for (int i = 0; i < _threadCount; i++) {
+	        count += _messageProcessors.get(i).getTradeCount();
+        }
+	    return count;
+	}
+	
+    private long getTotalOneSidedCount() {
+        long count = 0;
+        for (int i = 0; i < _threadCount; i++) {
+            count += _messageProcessors.get(i).getOneSidedCount();
+        }
+        return count;
+    }
+
+    private long getTotalTwoSidedCount() {
+        long count = 0;
+        for (int i = 0; i < _threadCount; i++) {
+            count += _messageProcessors.get(i).getTwoSidedCount();
+        }
+        return count;
+    }
+
+    private long getTotalDeleteCount() {
+        long count = 0;
+        for (int i = 0; i < _threadCount; i++) {
+            count += _messageProcessors.get(i).getDeleteCount();
+        }
+        return count;
+    }
+    
 	private static void printCassandraVersion(final Session session, final Metadata metadata) {
 		final ResultSet rs = session.execute("select release_version from system.local");
 	    final Row row = rs.one();
@@ -234,21 +278,4 @@ public class PreTradeLoader {
 	    System.out.println("Running with cassandra version:" + row.getString("Release_version"));
 	}
 	
-	private class MonitorRunnable implements Runnable {
-		private AtomicBoolean _isStopped = new AtomicBoolean(false);
-		
-		public void stop() {
-			_isStopped.set(true);
-		}
-		
-		@Override
-		public void run() {
-			while (!_isStopped.get()) {
-				for (int i = 0; i < _threadCount; i++) {
-					System.out.println("Queue[" + i + "]: " + _messageProcessors.get(i).getQueueSize());
-			    }
-				ExtractValueUtil.INSTANCE.sleep(5000);
-			}		
-		}		
-	}
 }

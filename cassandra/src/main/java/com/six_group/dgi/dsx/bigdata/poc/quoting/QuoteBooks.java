@@ -32,9 +32,12 @@ public class QuoteBooks {
     
     public void printBookStatistic() {
     	int totalSize = 0;
+    	int totalMatchedQuotes = 0;
     	for (final QuoteBook book : _bookMap.values()) {
     		totalSize += book.getAskSize() + book.getBidSize();
+    		totalMatchedQuotes += book.getMatchingCount();
     	}
-    	System.out.println("total legs: " + totalSize);
+    	System.out.println(String.format("Total matched quotes       : %d", totalMatchedQuotes));
+        System.out.println(String.format("Total legs without del msg : %d", totalSize));
     }
 }

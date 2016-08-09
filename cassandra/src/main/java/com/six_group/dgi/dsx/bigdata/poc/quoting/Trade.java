@@ -27,7 +27,7 @@ public class Trade implements Serializable {
 	
 	@PartitionKey(1)
 	@Column(name = "origdate")
-	private Date origdate;
+	private String origdate;
 
 	@ClusteringColumn(0)
 	@Column(name = "origtime")
@@ -72,7 +72,7 @@ public class Trade implements Serializable {
 	}
 	
 	public Trade(String security, long id, long bidId, long askId, String askLiquidityInd, String bidLiquidityInd,
-			String askMemberOrg, String bidMemberOrg, String askHouse, String bidHosue, Date origdate,
+			String askMemberOrg, String bidMemberOrg, String askHouse, String bidHosue, String origdate,
 			Date origtime, BigDecimal price, long volume) {
 		super();
 		this.security = security;
@@ -94,7 +94,7 @@ public class Trade implements Serializable {
 	public static Trade getTrade(final String line, final Date origDate, final int hours, final SimpleDateFormat timeFormatter) throws ParseException {
 		final Calendar cal = Calendar.getInstance();
 		final Calendar calOrigDate = Calendar.getInstance();
-		final Date origtime = timeFormatter.parse("01.01.2016  " + getTime(line));
+		final Date origtime = timeFormatter.parse("01.01.2016  " + ExtractValueUtil.INSTANCE.getTime(line));
 		final Trade trade = new Trade();
 		trade.setAskhouse("");
 		trade.setAskid(Long.valueOf(ExtractValueUtil.INSTANCE.getValue(line, " askid", true)));
@@ -105,7 +105,7 @@ public class Trade implements Serializable {
 		trade.setBidliquidityind(ExtractValueUtil.INSTANCE.getValue(line, "bidLiquidity Ind", true));
 		trade.setBidmemberorg(ExtractValueUtil.INSTANCE.getValue(line, "bidMember Organisation Code", true));
 		trade.setId(Long.valueOf(ExtractValueUtil.INSTANCE.getValue(line, " id", true)));
-		trade.setOrigdate(origDate);
+//		trade.setOrigdate(origDate);
 		trade.setPrice(new BigDecimal(ExtractValueUtil.INSTANCE.getValue(line, "price", true)));
 		trade.setSecurity(ExtractValueUtil.INSTANCE.getValue(line, "security", true));
 		trade.setVolume(Long.valueOf(ExtractValueUtil.INSTANCE.getValue(line, "volume", true)));
@@ -183,11 +183,11 @@ public class Trade implements Serializable {
 		this.bidmemberorg = bidMemberOrg;
 	}
 	
-	public Date getOrigdate() {
+	public String getOrigdate() {
 		return this.origdate;
 	}
 	
-	public void setOrigdate(Date origdate) {
+	public void setOrigdate(String origdate) {
 		this.origdate = origdate;
 	}
 	
@@ -231,7 +231,13 @@ public class Trade implements Serializable {
 		this.bidhouse = bidHosue;
 	}
 
-	private static String getTime(final String line) {
-		return line.substring(3, 15);
-	}
+    @Override
+    public String toString() {
+        return "Trade [security=" + security + ", origdate=" + origdate + ", origtime=" + origtime + ", id=" + id
+                + ", bidid=" + bidid + ", askid=" + askid + ", askliquidityind=" + askliquidityind
+                + ", bidliquidityind=" + bidliquidityind + ", askmemberorg=" + askmemberorg + ", bidmemberorg="
+                + bidmemberorg + ", askhouse=" + askhouse + ", bidhouse=" + bidhouse + ", price=" + price + ", volume="
+                + volume + "]";
+    }
+
 }

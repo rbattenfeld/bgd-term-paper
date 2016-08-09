@@ -100,8 +100,8 @@ public class QuoteLeg implements Serializable {
 	private String createKey() {
 		StringBuffer buf = new StringBuffer();
 		buf.append(getSecurity());
-		buf.append(getHouse());
-		buf.append(getOrigtime());
+//		buf.append(getHouse());
+		buf.append(getOrigtime().getTime());
 //		buf.append(getOrigdate());
 		return buf.toString();
 	}
