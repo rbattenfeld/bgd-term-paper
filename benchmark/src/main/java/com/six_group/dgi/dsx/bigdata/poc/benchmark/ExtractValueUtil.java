@@ -72,4 +72,11 @@ public enum ExtractValueUtil {
         return dateFormatter.format(date);
 	}
 
+	protected String getDateFromFileName(final String fileName) {
+        final String[] items = fileName.split("_", -1);
+        if (items.length == 3) {
+            return items[2].substring(0, 8);
+        }
+        throw new RuntimeException("Cannot extract business date from filename: " + fileName);
+    }
 }

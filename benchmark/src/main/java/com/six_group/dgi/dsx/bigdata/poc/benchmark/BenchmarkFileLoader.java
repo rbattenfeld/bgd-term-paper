@@ -96,7 +96,8 @@ public class BenchmarkFileLoader {
 
 	public void loadFavFile(final String pathToFile) {
 		final File benchmarkFile = new File(pathToFile);
-		final String currentDateAsString = ExtractValueUtil.INSTANCE.getDateAsString(_currentDate);
+		final String currentDateAsString = ExtractValueUtil.INSTANCE.getDateFromFileName(benchmarkFile.getName());
+//		final String currentDateAsString = ExtractValueUtil.INSTANCE.getDateAsString(_currentDate);
 		final int maxLinesPushed = _batchSize * _threadCount * 100;
 		_startTime = System.currentTimeMillis();
 		initBucketThreads();
@@ -198,6 +199,16 @@ public class BenchmarkFileLoader {
 				+ "trqxBestOfferVolume BIGINT, "
 			    + "trqxEffectiveBidPrice DECIMAL, "
 				+ "trqxEffectiveOfferPrice DECIMAL, "
+                + "bestBidPriceXSWXDiffBATE DECIMAL, "
+                + "bestBidPriceXSWXDiffCHIX DECIMAL, "
+                + "bestBidPriceXSWXDiffTRQX DECIMAL, "	    		
+                + "spreadXswx DECIMAL, "
+                + "spreadBate DECIMAL, "
+                + "spreadChix DECIMAL, "
+                + "spreadTrqx DECIMAL, "
+                + "highestBidPriceVenue TEXT, " 
+                + "highestBidPriceRanking TEXT, " 
+                + "lowestOfferPriceRanking TEXT, " 
 	    		+ "PRIMARY KEY ((businessDate), isin, tradeID))");
     }
 	
@@ -248,5 +259,4 @@ public class BenchmarkFileLoader {
         }
 	    return count;
 	}
-	
 }

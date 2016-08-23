@@ -2,7 +2,11 @@ package com.six_group.dgi.dsx.bigdata.poc.benchmark;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import com.datastax.driver.mapping.annotations.ClusteringColumn;
 import com.datastax.driver.mapping.annotations.PartitionKey;
@@ -80,7 +84,17 @@ public class Benchmark implements Serializable {
 	private Long trqxBestOfferVolume;
 	private BigDecimal trqxEffectiveBidPrice;
 	private BigDecimal trqxEffectiveOfferPrice;
-
+	private BigDecimal bestBidPriceXSWXDiffBATE;
+	private BigDecimal bestBidPriceXSWXDiffCHIX;
+	private BigDecimal bestBidPriceXSWXDiffTRQX;
+	private BigDecimal spreadXswx;
+	private BigDecimal spreadBate;
+	private BigDecimal spreadChix;
+	private BigDecimal spreadTrqx;
+	private String highestBidPriceVenue; 
+	private String highestBidPriceRanking; 
+	private String lowestOfferPriceRanking; 
+    
 	public static Benchmark getBenchmark(final String fileName, final String businessDate, final String line) {
 		final String[] items = line.split(",", -1);	
 		if (items.length == 56) {
@@ -143,6 +157,114 @@ public class Benchmark implements Serializable {
 			benchmark.setTrqxBestOfferVolume(setLong(items[53]));
 			benchmark.setTrqxEffectiveBidPrice(setBigDecimal(items[54]));
 			benchmark.setTrqxEffectiveOfferPrice(setBigDecimal(items[55]));
+			
+			BigDecimal bestBid = BigDecimal.ZERO;			
+			final Map<String, BigDecimal> bestBidMap = new HashMap<>();	
+			if (benchmark.getXswxBestBidPrice() != null) {
+				bestBidMap.put("XSWX", benchmark.getXswxBestBidPrice());
+				if (bestBid.compareTo(benchmark.getXswxBestBidPrice()) < 0) {
+					bestBid = benchmark.getXswxBestBidPrice();
+					benchmark.setHighestBidPriceVenue("XSWX");
+				}
+			}
+			
+			if (benchmark.getBateBestBidPrice() != null) {
+				bestBidMap.put("BATE", benchmark.getBateBestBidPrice());
+				if (bestBid.compareTo(benchmark.getBateBestBidPrice()) < 0) {
+					bestBid = benchmark.getBateBestBidPrice();
+					benchmark.setHighestBidPriceVenue("BATE");
+				}
+			}
+			
+			if (benchmark.getChixBestBidPrice() != null) {
+				bestBidMap.put("CHIX", benchmark.getChixBestBidPrice());
+				if (bestBid.compareTo(benchmark.getChixBestBidPrice()) < 0) {
+					bestBid = benchmark.getChixBestBidPrice();
+					benchmark.setHighestBidPriceVenue("CHIX");
+				}
+			}
+			
+			if (benchmark.getTrqxBestBidPrice() != null) {
+				bestBidMap.put("TRQX", benchmark.getTrqxBestBidPrice());
+				if (bestBid.compareTo(benchmark.getTrqxBestBidPrice()) < 0) {
+					bestBid = benchmark.getTrqxBestBidPrice();
+					benchmark.setHighestBidPriceVenue("TRQX");
+				}
+			}
+
+			final Map<String, BigDecimal> bestOfferMap = new HashMap<>();
+			if (benchmark.getXswxBestOfferPrice() != null) {
+				bestOfferMap.put("XSWX", benchmark.getXswxBestOfferPrice());
+			}
+			if (benchmark.getBateBestOfferPrice() != null) {
+				bestOfferMap.put("BATE", benchmark.getBateBestOfferPrice());
+			}
+			if (benchmark.getChixBestOfferPrice() != null) {
+				bestOfferMap.put("CHIX", benchmark.getChixBestOfferPrice());
+			}
+			if (benchmark.getTrqxBestOfferPrice() != null) {
+				bestOfferMap.put("TRQX", benchmark.getTrqxBestOfferPrice());
+			}
+			
+			final Map<String, BigDecimal> rankBestBidMap = new LinkedHashMap<>();
+			final Map<String, BigDecimal> rankOfferBidMap = new LinkedHashMap<>();
+			
+			bestBidMap.entrySet().stream()
+	            .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+	            .forEachOrdered(x -> rankBestBidMap.put(x.getKey(), x.getValue()));
+			
+			bestOfferMap.entrySet().stream()
+	            .sorted(Map.Entry.<String, BigDecimal>comparingByValue())
+	            .forEachOrdered(x -> rankOfferBidMap.put(x.getKey(), x.getValue()));
+			
+			benchmark.setHighestBidPriceRanking(rankBestBidMap.keySet().toString());
+			benchmark.setLowestOfferPriceRanking(rankOfferBidMap.keySet().toString());
+			
+			if (rankBestBidMap.isEmpty()) {
+				benchmark.setHighestBidPriceRanking("EMPTY");
+			}			
+			
+			if (benchmark.getXswxBestBidPrice() != null) {
+				if (bestBid.compareTo(benchmark.getXswxBestBidPrice()) == 0) {
+					String highestBidStr = "[XSWX";
+					for (String key : rankBestBidMap.keySet()) {
+						if (!key.equals("XSWX")) {
+							highestBidStr = highestBidStr + ", " + key;
+						}
+					}
+					highestBidStr = highestBidStr + "]";
+					benchmark.setHighestBidPriceRanking(highestBidStr);
+				}
+			}
+						
+			if (benchmark.getXswxBestBidPrice() != null && benchmark.getXswxBestOfferPrice() != null) {
+				benchmark.setSpreadXswx(benchmark.getXswxBestOfferPrice().subtract(benchmark.getXswxBestBidPrice()));
+			}
+			
+			if (benchmark.getBateBestBidPrice() != null && benchmark.getBateBestOfferPrice() != null) {
+				benchmark.setSpreadBate(benchmark.getBateBestOfferPrice().subtract(benchmark.getBateBestBidPrice()));
+			}
+			
+			if (benchmark.getChixBestBidPrice() != null && benchmark.getChixBestOfferPrice() != null) {
+				benchmark.setSpreadChix(benchmark.getChixBestOfferPrice().subtract(benchmark.getChixBestBidPrice()));
+			}
+			
+			if (benchmark.getTrqxBestBidPrice() != null && benchmark.getTrqxBestOfferPrice() != null) {
+				benchmark.setSpreadTrqx(benchmark.getTrqxBestOfferPrice().subtract(benchmark.getTrqxBestBidPrice()));
+			}
+			
+			if (benchmark.getXswxBestBidPrice() != null) {
+			    if (benchmark.getBateBestBidPrice() != null) {
+			        benchmark.setBestBidPriceXSWXDiffBATE(benchmark.getXswxBestBidPrice().subtract(benchmark.getBateBestBidPrice()));
+			    }
+			    if (benchmark.getChixBestBidPrice() != null) {
+                    benchmark.setBestBidPriceXSWXDiffCHIX(benchmark.getXswxBestBidPrice().subtract(benchmark.getChixBestBidPrice()));
+                }
+			    if (benchmark.getTrqxBestBidPrice() != null) {
+                    benchmark.setBestBidPriceXSWXDiffTRQX(benchmark.getXswxBestBidPrice().subtract(benchmark.getTrqxBestBidPrice()));
+                }
+			}
+			
 			return benchmark;
 		}
 		throw new IllegalArgumentException("Array length mismatch");
@@ -695,6 +817,87 @@ public class Benchmark implements Serializable {
 	public void setTrqxEffectiveOfferPrice(BigDecimal trqxEffectiveOfferPrice) {
 		this.trqxEffectiveOfferPrice = trqxEffectiveOfferPrice;
 	}
+	
+	public BigDecimal getBestBidPriceXSWXDiffBATE() {
+        return bestBidPriceXSWXDiffBATE;
+    }
+
+    public void setBestBidPriceXSWXDiffBATE(BigDecimal bestBidPriceXSWXDiffBATE) {
+        this.bestBidPriceXSWXDiffBATE = bestBidPriceXSWXDiffBATE;
+    }
+
+    public BigDecimal getBestBidPriceXSWXDiffCHIX() {
+        return bestBidPriceXSWXDiffCHIX;
+    }
+
+    public void setBestBidPriceXSWXDiffCHIX(BigDecimal bestBidPriceXSWXDiffCHIX) {
+        this.bestBidPriceXSWXDiffCHIX = bestBidPriceXSWXDiffCHIX;
+    }
+
+    public BigDecimal getBestBidPriceXSWXDiffTRQX() {
+        return bestBidPriceXSWXDiffTRQX;
+    }
+
+    public void setBestBidPriceXSWXDiffTRQX(BigDecimal bestBidPriceXSWXDiffTRQX) {
+        this.bestBidPriceXSWXDiffTRQX = bestBidPriceXSWXDiffTRQX;
+    }
+
+    public BigDecimal getSpreadXswx() {
+		return spreadXswx;
+	}
+
+	public void setSpreadXswx(BigDecimal bestSpreadXswx) {
+		this.spreadXswx = bestSpreadXswx;
+	}
+
+	public BigDecimal getSpreadBate() {
+		return spreadBate;
+	}
+
+	public void setSpreadBate(BigDecimal bestSpreadBate) {
+		this.spreadBate = bestSpreadBate;
+	}
+
+	public BigDecimal getSpreadChix() {
+		return spreadChix;
+	}
+
+	public void setSpreadChix(BigDecimal bestSpreadChix) {
+		this.spreadChix = bestSpreadChix;
+	}
+
+	public BigDecimal getSpreadTrqx() {
+		return spreadTrqx;
+	}
+
+	public void setSpreadTrqx(BigDecimal bestSpreadTrqx) {
+		this.spreadTrqx = bestSpreadTrqx;
+	}
+
+	public String getHighestBidPriceRanking() {
+		return highestBidPriceRanking;
+	}
+
+	public void setHighestBidPriceRanking(String highestBidPriceRanking) {
+		this.highestBidPriceRanking = highestBidPriceRanking;
+	}
+
+	public String getLowestOfferPriceRanking() {
+		return lowestOfferPriceRanking;
+	}
+
+	public void setLowestOfferPriceRanking(String lowestOfferPriceRanking) {
+		this.lowestOfferPriceRanking = lowestOfferPriceRanking;
+	}
+
+	
+	public String getHighestBidPriceVenue() {
+		return highestBidPriceVenue;
+	}
+
+	public void setHighestBidPriceVenue(String highestBidPriceVenue) {
+		this.highestBidPriceVenue = highestBidPriceVenue;
+	}
 
 	@Override
 	public String toString() {
@@ -732,7 +935,7 @@ public class Benchmark implements Serializable {
 
 	private static BigDecimal setBigDecimal(final String value) {
 		if (value != null && !value.isEmpty()) {
-			return new BigDecimal(value);
+			return new BigDecimal(value).setScale(6, RoundingMode.HALF_UP);
 		} else {
 			return null;
 		}
