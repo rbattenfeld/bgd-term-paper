@@ -4,12 +4,17 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.math.BigDecimal;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
@@ -23,6 +28,7 @@ import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
 
 public class BenchmarkFileLoader {
+	private static final Logger _Logger = Logger.getLogger(BenchmarkFileLoader.class.getName()); 
 	private final int _threadCount;
 	private final int _batchSize;
 	private final Session _session;
@@ -35,11 +41,13 @@ public class BenchmarkFileLoader {
 	private int _lineCount = 0;
 	private long _startTime;
 	private long _stopTime;
+	private long _processingTime;
 	private final Date _currentDate;
 	
 	public static void main(String[] args) {
 		Cluster cluster = null;
 		try {
+			final long startTime = System.currentTimeMillis();
 			final int threadCount = Integer.valueOf(args[1]); 
 			final int batchSize = Integer.valueOf(args[2]);
 			final String pathToBenchmarkFile = args[3];
@@ -68,10 +76,57 @@ public class BenchmarkFileLoader {
 	        		.withPoolingOptions(pools)
                     .withSocketOptions(new SocketOptions().setTcpNoDelay(true))
                     .build();
-		    final Session session = cluster.connect();		    
+			final List<String> files = fileList(pathToBenchmarkFile);
+		    final Session session = cluster.connect();	
+//			final List<Future<RunnableMetrics>> futureList = new ArrayList<>();
+//		    final ExecutorService threadPoolExecutor = new ThreadPoolExecutor(threadCount, getMaxPoolSize(threadCount, files), 500, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());		    
 			printCassandraVersion(session, cluster.getMetadata());
-	        final BenchmarkFileLoader loader = new BenchmarkFileLoader(session, threadCount, batchSize, timeOffsetInDays, generateTables);
-	        loader.loadFavFile(pathToBenchmarkFile);
+			
+			final BenchmarkFileLoader loader = new BenchmarkFileLoader(session, threadCount, batchSize, 0, generateTables);
+	        loader.loadBenchmarkFile(files);
+			
+//			for (final String pathToFile : files) {
+//				final Future<RunnableMetrics> future = threadPoolExecutor.submit(new Callable<RunnableMetrics>() {
+//					@Override
+//					public RunnableMetrics call() throws Exception {
+//						final BenchmarkFileLoader loader = new BenchmarkFileLoader(session, 5, batchSize, 0, false);
+//				        loader.loadBenchmarkFile(pathToFile);
+//				        return new RunnableMetrics(loader.getTotalBenchmarkCount(), loader.getProcessingTime());
+//					}					
+//				});
+//				futureList.add(future);
+//			}
+//			while (true) {
+//				boolean done = true;
+//				for (final Future<?> future : futureList) {
+//					if (!future.isDone()) {
+//						done = false;
+//					}
+//				}
+//				if (done) {
+//					break;
+//				} else {
+//					ExtractValueUtil.INSTANCE.sleep(100);
+//				}
+//			}
+//
+//			final long stopTime = System.currentTimeMillis();
+//			threadPoolExecutor.shutdown();
+//			long totalRecords = 0;
+//			long longestThreadProcessingTime = 0;
+//			for (int i = 0; i < files.size(); i++) {
+//				System.out.println(String.format("Loaded benchmark file : %s records: %d time: %d", files.get(i), futureList.get(i).get().getTotalRecordsProcessed(), futureList.get(i).get().getTotalProcessingTime()));
+//				totalRecords += futureList.get(i).get().getTotalRecordsProcessed();
+//				if (longestThreadProcessingTime < futureList.get(i).get().getTotalProcessingTime()) {
+//					longestThreadProcessingTime = futureList.get(i).get().getTotalProcessingTime();
+//				}
+//			}
+//            final double avgMsgPerSeconds = ((totalRecords) * 1000.0) / stopTime - startTime;
+//			System.out.println(String.format("Total benchmark records    : %d", totalRecords));
+//			System.out.println(String.format("Total Processing Time [ms] : %d", stopTime - startTime));
+//            System.out.println(String.format("Average perf [msg/s]       : %f", avgMsgPerSeconds));
+		} catch (final Exception ex) {
+			_Logger.log(Level.SEVERE, ex.getMessage(), ex);
 		} finally {
 		    if (cluster != null) {
 		    	cluster.close();
@@ -94,45 +149,49 @@ public class BenchmarkFileLoader {
 		_mapperBenchmark = _mapperManager.mapper(Benchmark.class);
 	}
 
-	public void loadFavFile(final String pathToFile) {
-		final File benchmarkFile = new File(pathToFile);
-		final String currentDateAsString = ExtractValueUtil.INSTANCE.getDateFromFileName(benchmarkFile.getName());
-//		final String currentDateAsString = ExtractValueUtil.INSTANCE.getDateAsString(_currentDate);
-		final int maxLinesPushed = _batchSize * _threadCount * 100;
-		_startTime = System.currentTimeMillis();
-		initBucketThreads();
-		try (final BufferedReader br = new BufferedReader(new FileReader(pathToFile))) {
-			String line;
-			while ((line = br.readLine()) != null) {
-				_lineCount++;
-				if (_lineCount > 1) {
-					final Benchmark benchmark = Benchmark.getBenchmark(benchmarkFile.getName(), currentDateAsString, line);
-					if (benchmark.getTradeID() != null && !benchmark.getTradeID().isEmpty()) {
-						_messageProcessors.get(_securityPartitioner.getBucket(benchmark.getIsin())).offer(benchmark);				
-						if (_lineCount % maxLinesPushed == 0) {
-							waitForCompletition(maxLinesPushed / 2);
+	public void loadBenchmarkFile(final List<String> pathToFileList) {
+		try {
+			final int maxLinesPushed = _batchSize * _threadCount * 100;
+			_startTime = System.currentTimeMillis();
+			initBucketThreads();
+			for (final String pathToFile : pathToFileList) {
+				final File benchmarkFile = new File(pathToFile);
+				final String currentDateAsString = ExtractValueUtil.INSTANCE.getDateFromFileName(benchmarkFile.getName());
+				try (final BufferedReader br = new BufferedReader(new FileReader(pathToFile))) {
+					String line;
+					long fileLineCount = 0;
+					while ((line = br.readLine()) != null) {
+						_lineCount++;
+						fileLineCount++;
+						if (fileLineCount > 1) {
+							_messageProcessors.get(_securityPartitioner.getNextBucket()).offer(new BenchmarkRunnableItem(benchmarkFile.getName(), currentDateAsString, line));				
+							if (_lineCount % maxLinesPushed == 0) {
+								waitForCompletition(maxLinesPushed / 2);
+							}
 						}
-					} else {
-						System.out.println("Invalid record: " + benchmark);
 					}
+				} catch (final IOException ex) {
+					_Logger.log(Level.SEVERE, ex.getMessage(), ex);
 				}
 			}
 			waitForCompletition(0);
 			_stopTime = System.currentTimeMillis();	
-            final long processingTime = _stopTime - _startTime;
+			_processingTime = _stopTime - _startTime;
             final long totalBenchmarkCount = getTotalBenchmarkCount();
-            final double msgPerSeconds = ((totalBenchmarkCount) * 1000.0) / processingTime;
+            final double msgPerSeconds = ((totalBenchmarkCount) * 1000.0) / _processingTime;
 			System.out.println(String.format("Current Day                : %s", _currentDate.toString()));
             System.out.println(String.format("Total benchmark records    : %d", totalBenchmarkCount));
 			System.out.println(String.format("Total Processing Time [ms] : %d", _stopTime - _startTime));
             System.out.println(String.format("Average time [msg/s]       : %f", msgPerSeconds));
-		} catch (final IOException ex) {
-			ex.printStackTrace();
 		} finally {
 			joinAllThreads();
 		}
 	}
 	
+	public long getProcessingTime() {
+		return _processingTime;
+	}
+
 	//-----------------------------------------------------------------------||
 	//-- Private Methods ----------------------------------------------------||
 	//-----------------------------------------------------------------------||
@@ -141,7 +200,8 @@ public class BenchmarkFileLoader {
 	private void generateTable() {
 		_session.execute("DROP TABLE IF EXISTS swx.benchmark");
 		_session.execute("CREATE TABLE swx.benchmark ("				
-				+ "businessDate TEXT, " 				
+				+ "businessMonth TEXT, " 				
+				+ "businessDate TEXT, " 							
 				+ "isin TEXT, " 
 				+ "tradeID TEXT, " 				
 				+ "fileName TEXT, " 
@@ -199,17 +259,25 @@ public class BenchmarkFileLoader {
 				+ "trqxBestOfferVolume BIGINT, "
 			    + "trqxEffectiveBidPrice DECIMAL, "
 				+ "trqxEffectiveOfferPrice DECIMAL, "
+				+ "aqxeBestBidPrice DECIMAL, "
+				+ "aqxeBestBidVolume BIGINT, "
+			    + "aqxeBestOfferPrice DECIMAL, "
+				+ "aqxeBestOfferVolume BIGINT, "
+			    + "aqxeEffectiveBidPrice DECIMAL, "
+				+ "aqxeEffectiveOfferPrice DECIMAL, "
                 + "bestBidPriceXSWXDiffBATE DECIMAL, "
                 + "bestBidPriceXSWXDiffCHIX DECIMAL, "
-                + "bestBidPriceXSWXDiffTRQX DECIMAL, "	    		
+                + "bestBidPriceXSWXDiffTRQX DECIMAL, "	
+                + "bestBidPriceXSWXDiffAQXE DECIMAL, "	    		
                 + "spreadXswx DECIMAL, "
                 + "spreadBate DECIMAL, "
                 + "spreadChix DECIMAL, "
                 + "spreadTrqx DECIMAL, "
+                + "spreadAqxe DECIMAL, "
                 + "highestBidPriceVenue TEXT, " 
                 + "highestBidPriceRanking TEXT, " 
                 + "lowestOfferPriceRanking TEXT, " 
-	    		+ "PRIMARY KEY ((businessDate), isin, tradeID))");
+	    		+ "PRIMARY KEY ((businessDate), isin, fileName))");
     }
 	
 	private static void printCassandraVersion(final Session session, final Metadata metadata) {
@@ -259,4 +327,22 @@ public class BenchmarkFileLoader {
         }
 	    return count;
 	}
+	
+	private static List<String> fileList(final String pathToDirOrFile) {
+		final List<String> fileNames = new ArrayList<>();
+		final File pathTo = new File(pathToDirOrFile);
+		if (pathTo.isDirectory()) {	        
+	        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(Paths.get(pathToDirOrFile))) {
+	            for (Path path : directoryStream) {
+	                fileNames.add(path.toString());
+	            }
+	        } catch (IOException ex) {
+	        	ex.printStackTrace();
+	        }
+		} else {
+			fileNames.add(pathToDirOrFile);
+		}
+        return fileNames;
+    }
+
 }

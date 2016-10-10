@@ -7,14 +7,17 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.mapping.Mapper;
 
 public class BenchmarkFilePersisterRunnable implements Runnable {
+	private static final Logger _Logger = Logger.getLogger(BenchmarkFilePersisterRunnable.class.getName()); 
 	private final int _batchSize;
 	private final AtomicBoolean _isStopped = new AtomicBoolean(false);
-	private final BlockingQueue<Benchmark> _lineQueue = new ArrayBlockingQueue<>(10000000);
+	private final BlockingQueue<BenchmarkRunnableItem> _lineQueue = new ArrayBlockingQueue<>(10000000);
 	private final Mapper<Benchmark> _mapperBenchmark;
 	private AtomicLong _benchmarkCount = new AtomicLong(0);
 
@@ -23,7 +26,7 @@ public class BenchmarkFilePersisterRunnable implements Runnable {
 		_mapperBenchmark = mapperBenchmark;
     }
 
-	public void offer(final Benchmark line) {
+	public void offer(final BenchmarkRunnableItem line) {
 		_lineQueue.offer(line);
 	}
 	
@@ -44,25 +47,27 @@ public class BenchmarkFilePersisterRunnable implements Runnable {
 		try {	                    
             List<Benchmark> benchmarkList = new ArrayList<>(); 
             while (!_isStopped.get()) {
-			    final Benchmark line = _lineQueue.poll(200, TimeUnit.MILLISECONDS);
-				if (line != null) {
+			    final BenchmarkRunnableItem runnableItem = _lineQueue.poll(200, TimeUnit.MILLISECONDS);
+				if (runnableItem != null) {
 					_benchmarkCount.incrementAndGet();
 					try {
-						benchmarkList.add(line);
-						if (benchmarkList.size() % _batchSize == 0) {
-							saveSpreadsCassandra(benchmarkList);
-							benchmarkList = new ArrayList<Benchmark>(); 
+						final Benchmark benchmark = Benchmark.getBenchmark(runnableItem.getFileName(), runnableItem.getCurrentDateAsString(), runnableItem.getLine());
+						if (benchmark.getTradeID() != null && !benchmark.getTradeID().isEmpty()) {
+							benchmarkList.add(benchmark);
+							if (benchmarkList.size() % _batchSize == 0) {
+								saveSpreadsCassandra(benchmarkList);
+								benchmarkList = new ArrayList<Benchmark>(); 
+							}
 						}
 					} catch (final Exception ex) {
-						ex.printStackTrace();
-						System.out.println("invalid row" + line);
+						_Logger.log(Level.SEVERE, "invalid row" + runnableItem.getLine(), ex);
 					}
 				} 
             }
 		    saveSpreadsCassandra(benchmarkList);
-			System.out.println("Stopped BenchmarkFilePersisterRunnable consumer");
+		    _Logger.info("Stopped BenchmarkFilePersisterRunnable consumer");
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			_Logger.log(Level.SEVERE, ex.getMessage(), ex);
 		}
 	}
 

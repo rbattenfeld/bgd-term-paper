@@ -1,9 +1,20 @@
 package com.six_group.dgi.dsx.bigdata.poc.benchmark;
 
+import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public enum ExtractValueUtil {
 	INSTANCE;
@@ -79,4 +90,62 @@ public enum ExtractValueUtil {
         }
         throw new RuntimeException("Cannot extract business date from filename: " + fileName);
     }
+	
+	public List<String> fileList(final String pathToDirOrFile) {
+		final List<String> fileNames = new ArrayList<>();
+		final File pathTo = new File(pathToDirOrFile);
+		if (pathTo.isDirectory()) {	        
+	        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(Paths.get(pathToDirOrFile))) {
+	            for (Path path : directoryStream) {
+	                fileNames.add(path.toString());
+	            }
+	        } catch (IOException ex) {
+	        	ex.printStackTrace();
+	        }
+		} else {
+			fileNames.add(pathToDirOrFile);
+		}
+        return fileNames;
+    }
+	
+	public void addToMap(final Map<BigDecimal, String> decimalMap, final String venue, BigDecimal value) {
+		if (value != null) {
+			final String vv = decimalMap.get(value);
+			if (vv != null) {
+				decimalMap.put(value, vv + "=" + venue);
+			} else {
+				decimalMap.put(value, venue);
+			}
+		}
+	}
+	
+	public Map<BigDecimal, String> sortMap(final Map<BigDecimal, String> decimalMap, final boolean reversedOrder) {
+		final Map<BigDecimal, String> result = new LinkedHashMap<>();
+		if (reversedOrder) {
+			decimalMap.entrySet().stream()
+			    .sorted(Map.Entry.<BigDecimal, String>comparingByKey().reversed())
+			    .forEachOrdered(x -> result.put(x.getKey(), x.getValue()));
+		} else {
+			decimalMap.entrySet().stream()
+			    .sorted(Map.Entry.<BigDecimal, String>comparingByKey())
+			    .forEachOrdered(x -> result.put(x.getKey(), x.getValue()));
+		}
+		return result;
+	}
+	
+
+	public String getValuesAsString(final Map<BigDecimal, String> decimalMap) {
+		StringBuffer buf = new StringBuffer();
+    	for (Map.Entry<BigDecimal, String> entry : decimalMap.entrySet()) {
+			if (buf.length() > 0) {
+				buf = buf.append(", ");
+			}
+			buf.append(entry.getValue());
+		}
+    	if (buf.length() > 0) {
+    		return buf.toString();
+    	} else {
+    		return "EMPTY";
+    	}
+	}
 }

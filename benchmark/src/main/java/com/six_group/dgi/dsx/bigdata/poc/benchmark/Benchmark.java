@@ -6,13 +6,14 @@ import java.math.RoundingMode;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.datastax.driver.mapping.annotations.ClusteringColumn;
 import com.datastax.driver.mapping.annotations.PartitionKey;
 import com.datastax.driver.mapping.annotations.Table;
 
-@Table(keyspace = "swx", name = "benchmark",
+@Table(keyspace = "swx", name = "Benchmark",
 	readConsistency = "QUORUM",
 	writeConsistency = "QUORUM",
 	caseSensitiveKeyspace = false,
@@ -21,19 +22,22 @@ public class Benchmark implements Serializable {
 	private static final long serialVersionUID = -3338252723406692293L;
 	
 	@PartitionKey
-	private String businessDate;
+	private String businessMonth;
 	
 	@ClusteringColumn(0)
+	private String businessDate;
+	
+	@ClusteringColumn(1)
 	private String isin;
 
-	@ClusteringColumn(1)
+	@ClusteringColumn(2)
 	private String tradeID;
 	
 	private String fileName;
 	private String ccy;
 	private String fullName;
 	private Date tradeTime;
-	private BigDecimal tradePrice;
+	private BigDecimal tradePri;
 	private Long tradeQty;
 	private String tidm;
 	private String side;
@@ -44,228 +48,207 @@ public class Benchmark implements Serializable {
 	private String participant;
 	private String portfolioManagerID; 
 	private String userDefined; 
-	private BigDecimal tradeTimeBenchmarkPriceTouch;
-	private BigDecimal hiLoBenchmarkPriceTouch;
-	private BigDecimal tradeTimeBenchmarkPriceEffective; 
-	private BigDecimal hiLoBenchmarkPriceEffective;
-	private String tradeTimeBenchmarkVenueTouch;
-	private String hiLoBenchmarkVenueTouch;
-	private String tradeTimeBenchmarkVenueEffective;
-	private String hiLoBenchmarkVenueEffective;
-	private String tradeTimeBenchmarkBPSTouch;
-	private String hiLoBenchmarkBPSTouch;
-	private String tradeTimeBenchmarkBPsEffective;
-	private String hiLoBenchmarkBPSEffective;
-	private String tradeTimeBenchmarkShortfallValueTouch;
-	private String hiLoBenchmarkShortfallValueTouch;
-	private String tradeTimeBenchmarkShortfallValueEffective;
-	private String hiLoBenchmarkShortfallValueEffective;
-	private BigDecimal xswxBestBidPrice;
-	private Long xswxBestBidVolume;
-	private BigDecimal xswxBestOfferPrice;
-	private Long xswxBestOfferVolume;
-	private BigDecimal xswxEffectiveBidPrice;
-	private BigDecimal xswxEffectiveOfferPrice;
-	private BigDecimal bateBestBidPrice;
-	private Long bateBestBidVolume;
-	private BigDecimal bateBestOfferPrice;
-	private Long bateBestOfferVolume;
-	private BigDecimal bateEffectiveBidPrice;
-	private BigDecimal bateEffectiveOfferPrice;
-	private BigDecimal chixBestBidPrice;
-	private Long chixBestBidVolume;
-	private BigDecimal chixBestOfferPrice;
-	private Long chixBestOfferVolume;
-	private BigDecimal chixEffectiveBidPrice;
-	private BigDecimal chixEffectiveOfferPrice;
-	private BigDecimal trqxBestBidPrice;
-	private Long trqxBestBidVolume;
-	private BigDecimal trqxBestOfferPrice;
-	private Long trqxBestOfferVolume;
-	private BigDecimal trqxEffectiveBidPrice;
-	private BigDecimal trqxEffectiveOfferPrice;
-	private BigDecimal bestBidPriceXSWXDiffBATE;
-	private BigDecimal bestBidPriceXSWXDiffCHIX;
-	private BigDecimal bestBidPriceXSWXDiffTRQX;
+	private BigDecimal tradeTiBenPriTouch;
+	private BigDecimal hiLoBenPriTouch;
+	private BigDecimal tradeTiBenPriEff; 
+	private BigDecimal hiLoBenPriEff;
+	private String tradeTiBenVenTouch;
+	private String hiLoBenVenTouch;
+	private String tradeTiBenVenEff;
+	private String hiLoBenVenEff;
+	private String tradeTiBenBPSTouch;
+	private String hiLoBenBPSTouch;
+	private String tradeTiBenBPsEff;
+	private String hiLoBenBPSEff;
+	private String tradeTiBenSfallValueTouch;
+	private String hiLoBenSfallValueTouch;
+	private String tradeTiBenSfallValueEff;
+	private String hiLoBenSfallValueEff;
+	private BigDecimal xswxBBidPri;
+	private Long xswxBBidVol;
+	private BigDecimal xswxBOffPri;
+	private Long xswxBOffVol;
+	private BigDecimal xswxEffBidPri;
+	private BigDecimal xswxEffOffPri;
+	private BigDecimal bateBBidPri;
+	private Long bateBBidVol;
+	private BigDecimal bateBOffPri;
+	private Long bateBOffVol;
+	private BigDecimal bateEffBidPri;
+	private BigDecimal bateEffOffPri;
+	private BigDecimal chixBBidPri;
+	private Long chixBBidVol;
+	private BigDecimal chixBOffPri;
+	private Long chixBOffVol;
+	private BigDecimal chixEffBidPri;
+	private BigDecimal chixEffOffPri;
+	private BigDecimal trqxBBidPri;
+	private Long trqxBBidVol;
+	private BigDecimal trqxBOffPri;
+	private Long trqxBOffVol;
+	private BigDecimal trqxEffBidPri;
+	private BigDecimal trqxEffOffPri;
+	
+	private BigDecimal aqxeBBidPri;
+	private Long aqxeBBidVol;
+	private BigDecimal aqxeBOffPri;
+	private Long aqxeBOffVol;
+	private BigDecimal aqxeEffBidPri;
+	private BigDecimal aqxeEffOffPri;
+	
+	private BigDecimal BBidPriXSWXDiffBATE;
+	private BigDecimal BBidPriXSWXDiffCHIX;
+	private BigDecimal BBidPriXSWXDiffTRQX;
+	private BigDecimal BBidPriXSWXDiffAQXE;
 	private BigDecimal spreadXswx;
 	private BigDecimal spreadBate;
 	private BigDecimal spreadChix;
 	private BigDecimal spreadTrqx;
-	private String highestBidPriceVenue; 
-	private String highestBidPriceRanking; 
-	private String lowestOfferPriceRanking; 
+	private BigDecimal spreadAqxe;
+	private String highBidPriVen; 
+	private String highBidPriRanking; 
+	private String lowOffPriRanking;
     
 	public static Benchmark getBenchmark(final String fileName, final String businessDate, final String line) {
 		final String[] items = line.split(",", -1);	
-		if (items.length == 56) {
-			final Benchmark benchmark = new Benchmark();
-			benchmark.setBusinessDate(businessDate);
-			benchmark.setFileName(fileName);			
-			benchmark.setIsin(items[0]);
-			benchmark.setCcy(items[1]);
-			benchmark.setFullName(items[2]);
-			benchmark.setTradeTime(new Date(Long.valueOf(items[3])));
-			benchmark.setTradePrice(new BigDecimal(items[4]));
-			benchmark.setTradeQty(setLong(items[5]));
-			benchmark.setTradeID(items[6]);
-			benchmark.setTidm(items[7]);
-			benchmark.setSide(items[8]);
-			benchmark.setTradingNetworkID(items[9]);
-			benchmark.setTrader(items[10]);
-			benchmark.setCounterparty(items[11]);
-			benchmark.setOrderRef(items[12]);
-			benchmark.setParticipant(items[13]);
-			benchmark.setPortfolioManagerID(items[14]); 
-			benchmark.setUserDefined(items[15]); 
-			benchmark.setTradeTimeBenchmarkPriceTouch(setBigDecimal(items[16]));
-			benchmark.setHiLoBenchmarkPriceTouch(setBigDecimal(items[17]));
-			benchmark.setTradeTimeBenchmarkPriceEffective(setBigDecimal(items[18])); 
-			benchmark.setHiLoBenchmarkPriceEffective(setBigDecimal(items[19]));
-			benchmark.setTradeTimeBenchmarkVenueTouch(items[20]);
-			benchmark.setHiLoBenchmarkVenueTouch(items[21]);
-			benchmark.setTradeTimeBenchmarkVenueEffective(items[22]);
-			benchmark.setHiLoBenchmarkVenueEffective(items[23]);
-			benchmark.setTradeTimeBenchmarkBPSTouch(items[24]);
-			benchmark.setHiLoBenchmarkBPSTouch(items[25]);
-			benchmark.setTradeTimeBenchmarkBPsEffective(items[26]);
-			benchmark.setHiLoBenchmarkBPSEffective(items[27]);
-			benchmark.setTradeTimeBenchmarkShortfallValueTouch(items[28]);
-			benchmark.setHiLoBenchmarkShortfallValueTouch(items[29]);
-			benchmark.setTradeTimeBenchmarkShortfallValueEffective(items[30]);
-			benchmark.setHiLoBenchmarkShortfallValueEffective(items[31]);
-			benchmark.setXswxBestBidPrice(setBigDecimal(items[32]));
-			benchmark.setXswxBestBidVolume(setLong(items[33]));
-			benchmark.setXswxBestOfferPrice(setBigDecimal(items[34]));
-			benchmark.setXswxBestOfferVolume(setLong(items[35]));
-			benchmark.setXswxEffectiveBidPrice(setBigDecimal(items[36]));
-			benchmark.setXswxEffectiveOfferPrice(setBigDecimal(items[37]));
-			benchmark.setBateBestBidPrice(setBigDecimal(items[38]));
-			benchmark.setBateBestBidVolume(setLong(items[39]));
-			benchmark.setBateBestOfferPrice(setBigDecimal(items[40]));
-			benchmark.setBateBestOfferVolume(setLong(items[41]));
-			benchmark.setBateEffectiveBidPrice(setBigDecimal(items[42]));
-			benchmark.setBateEffectiveOfferPrice(setBigDecimal(items[43]));
-			benchmark.setChixBestBidPrice(setBigDecimal(items[44]));
-			benchmark.setChixBestBidVolume(setLong(items[45]));
-			benchmark.setChixBestOfferPrice(setBigDecimal(items[46]));
-			benchmark.setChixBestOfferVolume(setLong(items[47]));
-			benchmark.setChixEffectiveBidPrice(setBigDecimal(items[48]));
-			benchmark.setChixEffectiveOfferPrice(setBigDecimal(items[49]));
-			benchmark.setTrqxBestBidPrice(setBigDecimal(items[50]));
-			benchmark.setTrqxBestBidVolume(setLong(items[51]));
-			benchmark.setTrqxBestOfferPrice(setBigDecimal(items[52]));
-			benchmark.setTrqxBestOfferVolume(setLong(items[53]));
-			benchmark.setTrqxEffectiveBidPrice(setBigDecimal(items[54]));
-			benchmark.setTrqxEffectiveOfferPrice(setBigDecimal(items[55]));
+		if (items.length == 62) {
+			final Benchmark Ben = new Benchmark();
+			Ben.setBusinessMonth(businessDate.substring(0, 6));
+			Ben.setBusinessDate(businessDate);
+			Ben.setFileName(fileName);			
+			Ben.setIsin(items[0]);
+			Ben.setCcy(items[1]);
+			Ben.setFullName(items[2]);
+			Ben.setTradeTime(new Date(Long.valueOf(items[3])));
+			Ben.setTradePri(new BigDecimal(items[4]));
+			Ben.setTradeQty(setLong(items[5]));
+			Ben.setTradeID(items[6]);
+			Ben.setTidm(items[7]);
+			Ben.setSide(items[8]);
+			Ben.setTradingNetworkID(items[9]);
+			Ben.setTrader(items[10]);
+			Ben.setCounterparty(items[11]);
+			Ben.setOrderRef(items[12]);
+			Ben.setParticipant(items[13]);
+			Ben.setPortfolioManagerID(items[14]); 
+			Ben.setUserDefined(items[15]); 
+			Ben.setTradeTiBenPriTouch(setBigDecimal(items[16]));
+			Ben.setHiLoBenPriTouch(setBigDecimal(items[17]));
+			Ben.setTradeTiBenPriEff(setBigDecimal(items[18])); 
+			Ben.setHiLoBenPriEff(setBigDecimal(items[19]));
+			Ben.setTradeTiBenVenTouch(items[20]);
+			Ben.setHiLoBenVenTouch(items[21]);
+			Ben.setTradeTiBenVenEff(items[22]);
+			Ben.setHiLoBenVenEff(items[23]);
+			Ben.setTradeTiBenBPSTouch(items[24]);
+			Ben.setHiLoBenBPSTouch(items[25]);
+			Ben.setTradeTiBenBPsEff(items[26]);
+			Ben.setHiLoBenBPSEff(items[27]);
+			Ben.setTradeTiBenSfallValueTouch(items[28]);
+			Ben.setHiLoBenSfallValueTouch(items[29]);
+			Ben.setTradeTiBenSfallValueEff(items[30]);
+			Ben.setHiLoBenSfallValueEff(items[31]);
+			Ben.setXswxBBidPri(setBigDecimal(items[32]));
+			Ben.setXswxBBidVol(setLong(items[33]));
+			Ben.setXswxBOffPri(setBigDecimal(items[34]));
+			Ben.setXswxBOffVol(setLong(items[35]));
+			Ben.setXswxEffBidPri(setBigDecimal(items[36]));
+			Ben.setXswxEffOffPri(setBigDecimal(items[37]));
+			Ben.setBateBBidPri(setBigDecimal(items[38]));
+			Ben.setBateBBidVol(setLong(items[39]));
+			Ben.setBateBOffPri(setBigDecimal(items[40]));
+			Ben.setBateBOffVol(setLong(items[41]));
+			Ben.setBateEffBidPri(setBigDecimal(items[42]));
+			Ben.setBateEffOffPri(setBigDecimal(items[43]));
+			Ben.setChixBBidPri(setBigDecimal(items[44]));
+			Ben.setChixBBidVol(setLong(items[45]));
+			Ben.setChixBOffPri(setBigDecimal(items[46]));
+			Ben.setChixBOffVol(setLong(items[47]));
+			Ben.setChixEffBidPri(setBigDecimal(items[48]));
+			Ben.setChixEffOffPri(setBigDecimal(items[49]));
+			Ben.setTrqxBBidPri(setBigDecimal(items[50]));
+			Ben.setTrqxBBidVol(setLong(items[51]));
+			Ben.setTrqxBOffPri(setBigDecimal(items[52]));
+			Ben.setTrqxBOffVol(setLong(items[53]));
+			Ben.setTrqxEffBidPri(setBigDecimal(items[54]));
+			Ben.setTrqxEffOffPri(setBigDecimal(items[55]));
+			Ben.setAqxeBBidPri(setBigDecimal(items[56]));
+			Ben.setAqxeBBidVol(setLong(items[57]));
+			Ben.setAqxeBOffPri(setBigDecimal(items[58]));
+			Ben.setAqxeBOffVol(setLong(items[59]));
+			Ben.setAqxeEffBidPri(setBigDecimal(items[60]));
+			Ben.setAqxeEffOffPri(setBigDecimal(items[61]));
 			
-			BigDecimal bestBid = BigDecimal.ZERO;			
-			final Map<String, BigDecimal> bestBidMap = new HashMap<>();	
-			if (benchmark.getXswxBestBidPrice() != null) {
-				bestBidMap.put("XSWX", benchmark.getXswxBestBidPrice());
-				if (bestBid.compareTo(benchmark.getXswxBestBidPrice()) < 0) {
-					bestBid = benchmark.getXswxBestBidPrice();
-					benchmark.setHighestBidPriceVenue("XSWX");
+			final Map<BigDecimal, String> BBidPriMap = new HashMap<>();
+			final Map<BigDecimal, String> BOffPriMap = new HashMap<>();
+			ExtractValueUtil.INSTANCE.addToMap(BBidPriMap, "XSWX", Ben.getXswxBBidPri());
+	    	ExtractValueUtil.INSTANCE.addToMap(BBidPriMap, "BATE", Ben.getBateBBidPri());
+	    	ExtractValueUtil.INSTANCE.addToMap(BBidPriMap, "CHIX", Ben.getChixBBidPri());
+	    	ExtractValueUtil.INSTANCE.addToMap(BBidPriMap, "TRQX", Ben.getTrqxBBidPri());
+	    	ExtractValueUtil.INSTANCE.addToMap(BBidPriMap, "AQXE", Ben.getAqxeBBidPri());    	
+			ExtractValueUtil.INSTANCE.addToMap(BOffPriMap, "XSWX", Ben.getXswxBOffPri());
+	    	ExtractValueUtil.INSTANCE.addToMap(BOffPriMap, "BATE", Ben.getBateBOffPri());
+	    	ExtractValueUtil.INSTANCE.addToMap(BOffPriMap, "CHIX", Ben.getChixBOffPri());
+	    	ExtractValueUtil.INSTANCE.addToMap(BOffPriMap, "TRQX", Ben.getTrqxBOffPri());
+	    	ExtractValueUtil.INSTANCE.addToMap(BOffPriMap, "AQXE", Ben.getAqxeBOffPri());	    	
+	    	final Map<BigDecimal, String> BBidPriSortedMap = ExtractValueUtil.INSTANCE.sortMap(BBidPriMap, true);
+	    	final Map<BigDecimal, String> BOffPriSortedMap = ExtractValueUtil.INSTANCE.sortMap(BOffPriMap, false);	    	
+	    	Ben.sethighBidPriRanking(ExtractValueUtil.INSTANCE.getValuesAsString(BBidPriSortedMap));
+	    	Ben.setlowOffPriRanking(ExtractValueUtil.INSTANCE.getValuesAsString(BOffPriSortedMap));
+	
+			BigDecimal BBid = BigDecimal.ZERO;			
+			final Map<String, BigDecimal> BBidMap = new HashMap<>();	
+			if (Ben.getXswxBBidPri() != null) {
+				if (BBid.compareTo(Ben.getXswxBBidPri()) < 0) {
+					BBid = Ben.getXswxBBidPri();
+					Ben.sethighBidPriVen("XSWX");
 				}
 			}
 			
-			if (benchmark.getBateBestBidPrice() != null) {
-				bestBidMap.put("BATE", benchmark.getBateBestBidPrice());
-				if (bestBid.compareTo(benchmark.getBateBestBidPrice()) < 0) {
-					bestBid = benchmark.getBateBestBidPrice();
-					benchmark.setHighestBidPriceVenue("BATE");
+			if (Ben.getBateBBidPri() != null) {
+				if (BBid.compareTo(Ben.getBateBBidPri()) < 0) {
+					BBid = Ben.getBateBBidPri();
+					Ben.sethighBidPriVen("BATE");
 				}
 			}
 			
-			if (benchmark.getChixBestBidPrice() != null) {
-				bestBidMap.put("CHIX", benchmark.getChixBestBidPrice());
-				if (bestBid.compareTo(benchmark.getChixBestBidPrice()) < 0) {
-					bestBid = benchmark.getChixBestBidPrice();
-					benchmark.setHighestBidPriceVenue("CHIX");
+			if (Ben.getChixBBidPri() != null) {
+				if (BBid.compareTo(Ben.getChixBBidPri()) < 0) {
+					BBid = Ben.getChixBBidPri();
+					Ben.sethighBidPriVen("CHIX");
 				}
 			}
 			
-			if (benchmark.getTrqxBestBidPrice() != null) {
-				bestBidMap.put("TRQX", benchmark.getTrqxBestBidPrice());
-				if (bestBid.compareTo(benchmark.getTrqxBestBidPrice()) < 0) {
-					bestBid = benchmark.getTrqxBestBidPrice();
-					benchmark.setHighestBidPriceVenue("TRQX");
+			if (Ben.getTrqxBBidPri() != null) {
+				if (BBid.compareTo(Ben.getTrqxBBidPri()) < 0) {
+					BBid = Ben.getTrqxBBidPri();
+					Ben.sethighBidPriVen("TRQX");
 				}
 			}
 
-			final Map<String, BigDecimal> bestOfferMap = new HashMap<>();
-			if (benchmark.getXswxBestOfferPrice() != null) {
-				bestOfferMap.put("XSWX", benchmark.getXswxBestOfferPrice());
-			}
-			if (benchmark.getBateBestOfferPrice() != null) {
-				bestOfferMap.put("BATE", benchmark.getBateBestOfferPrice());
-			}
-			if (benchmark.getChixBestOfferPrice() != null) {
-				bestOfferMap.put("CHIX", benchmark.getChixBestOfferPrice());
-			}
-			if (benchmark.getTrqxBestOfferPrice() != null) {
-				bestOfferMap.put("TRQX", benchmark.getTrqxBestOfferPrice());
-			}
-			
-			final Map<String, BigDecimal> rankBestBidMap = new LinkedHashMap<>();
-			final Map<String, BigDecimal> rankOfferBidMap = new LinkedHashMap<>();
-			
-			bestBidMap.entrySet().stream()
-	            .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
-	            .forEachOrdered(x -> rankBestBidMap.put(x.getKey(), x.getValue()));
-			
-			bestOfferMap.entrySet().stream()
-	            .sorted(Map.Entry.<String, BigDecimal>comparingByValue())
-	            .forEachOrdered(x -> rankOfferBidMap.put(x.getKey(), x.getValue()));
-			
-			benchmark.setHighestBidPriceRanking(rankBestBidMap.keySet().toString());
-			benchmark.setLowestOfferPriceRanking(rankOfferBidMap.keySet().toString());
-			
-			if (rankBestBidMap.isEmpty()) {
-				benchmark.setHighestBidPriceRanking("EMPTY");
-			}			
-			
-			if (benchmark.getXswxBestBidPrice() != null) {
-				if (bestBid.compareTo(benchmark.getXswxBestBidPrice()) == 0) {
-					String highestBidStr = "[XSWX";
-					for (String key : rankBestBidMap.keySet()) {
-						if (!key.equals("XSWX")) {
-							highestBidStr = highestBidStr + ", " + key;
-						}
-					}
-					highestBidStr = highestBidStr + "]";
-					benchmark.setHighestBidPriceRanking(highestBidStr);
+			if (Ben.getAqxeBBidPri() != null) {
+				if (BBid.compareTo(Ben.getAqxeBBidPri()) < 0) {
+					BBid = Ben.getAqxeBBidPri();
+					Ben.sethighBidPriVen("AQXE");
 				}
 			}
-						
-			if (benchmark.getXswxBestBidPrice() != null && benchmark.getXswxBestOfferPrice() != null) {
-				benchmark.setSpreadXswx(benchmark.getXswxBestOfferPrice().subtract(benchmark.getXswxBestBidPrice()));
-			}
 			
-			if (benchmark.getBateBestBidPrice() != null && benchmark.getBateBestOfferPrice() != null) {
-				benchmark.setSpreadBate(benchmark.getBateBestOfferPrice().subtract(benchmark.getBateBestBidPrice()));
-			}
-			
-			if (benchmark.getChixBestBidPrice() != null && benchmark.getChixBestOfferPrice() != null) {
-				benchmark.setSpreadChix(benchmark.getChixBestOfferPrice().subtract(benchmark.getChixBestBidPrice()));
-			}
-			
-			if (benchmark.getTrqxBestBidPrice() != null && benchmark.getTrqxBestOfferPrice() != null) {
-				benchmark.setSpreadTrqx(benchmark.getTrqxBestOfferPrice().subtract(benchmark.getTrqxBestBidPrice()));
-			}
-			
-			if (benchmark.getXswxBestBidPrice() != null) {
-			    if (benchmark.getBateBestBidPrice() != null) {
-			        benchmark.setBestBidPriceXSWXDiffBATE(benchmark.getXswxBestBidPrice().subtract(benchmark.getBateBestBidPrice()));
+			if (Ben.getXswxBBidPri() != null) {
+			    if (Ben.getBateBBidPri() != null) {
+			        Ben.setBBidPriXSWXDiffBATE(Ben.getXswxBBidPri().subtract(Ben.getBateBBidPri()));
 			    }
-			    if (benchmark.getChixBestBidPrice() != null) {
-                    benchmark.setBestBidPriceXSWXDiffCHIX(benchmark.getXswxBestBidPrice().subtract(benchmark.getChixBestBidPrice()));
+			    if (Ben.getChixBBidPri() != null) {
+                    Ben.setBBidPriXSWXDiffCHIX(Ben.getXswxBBidPri().subtract(Ben.getChixBBidPri()));
                 }
-			    if (benchmark.getTrqxBestBidPrice() != null) {
-                    benchmark.setBestBidPriceXSWXDiffTRQX(benchmark.getXswxBestBidPrice().subtract(benchmark.getTrqxBestBidPrice()));
+			    if (Ben.getTrqxBBidPri() != null) {
+                    Ben.setBBidPriXSWXDiffTRQX(Ben.getXswxBBidPri().subtract(Ben.getTrqxBBidPri()));
+                }
+			    if (Ben.getAqxeBBidPri() != null) {
+                    Ben.setBBidPriXSWXDiffAQXE(Ben.getXswxBBidPri().subtract(Ben.getAqxeBBidPri()));
                 }
 			}
 			
-			return benchmark;
+			return Ben;
 		}
 		throw new IllegalArgumentException("Array length mismatch");
 	}
@@ -275,24 +258,24 @@ public class Benchmark implements Serializable {
 	}	
 	
 	public Benchmark(String businessDate, String isin, String tradeID, String fileName, String ccy, String fullName,
-			Date tradeTime, BigDecimal tradePrice, Long tradeQty, String tidm, String side, String tradingNetworkID,
+			Date tradeTime, BigDecimal tradePri, Long tradeQty, String tidm, String side, String tradingNetworkID,
 			String trader, String counterparty, String orderRef, String participant, String portfolioManagerID,
-			String userDefined, BigDecimal tradeTimeBenchmarkPriceTouch, BigDecimal hiLoBenchmarkPriceTouch,
-			BigDecimal tradeTimeBenchmarkPriceEffective, BigDecimal hiLoBenchmarkPriceEffective,
-			String tradeTimeBenchmarkVenueTouch, String hiLoBenchmarkVenueTouch,
-			String tradeTimeBenchmarkVenueEffective, String hiLoBenchmarkVenueEffective,
-			String tradeTimeBenchmarkBPSTouch, String hiLoBenchmarkBPSTouch, String tradeTimeBenchmarkBPsEffective,
-			String hiLoBenchmarkBPSEffective, String tradeTimeBenchmarkShortfallValueTouch,
-			String hiLoBenchmarkShortfallValueTouch, String tradeTimeBenchmarkShortfallValueEffective,
-			String hiLoBenchmarkShortfallValueEffective, BigDecimal xswxBestBidPrice, Long xswxBestBidVolume,
-			BigDecimal xswxBestOfferPrice, Long xswxBestOfferVolume, BigDecimal xswxEffectiveBidPrice,
-			BigDecimal xswxEffectiveOfferPrice, BigDecimal bateBestBidPrice, Long bateBestBidVolume,
-			BigDecimal bateBestOfferPrice, Long bateBestOfferVolume, BigDecimal bateEffectiveBidPrice,
-			BigDecimal bateEffectiveOfferPrice, BigDecimal chixBestBidPrice, Long chixBestBidVolume,
-			BigDecimal chixBestOfferPrice, Long chixBestOfferVolume, BigDecimal chixEffectiveBidPrice,
-			BigDecimal chixEffectiveOfferPrice, BigDecimal trqxBestBidPrice, Long trqxBestBidVolume,
-			BigDecimal trqxBestOfferPrice, Long trqxBestOfferVolume, BigDecimal trqxEffectiveBidPrice,
-			BigDecimal trqxEffectiveOfferPrice) {
+			String userDefined, BigDecimal tradeTiBenPriTouch, BigDecimal hiLoBenPriTouch,
+			BigDecimal tradeTiBenPriEff, BigDecimal hiLoBenPriEff,
+			String tradeTiBenVenTouch, String hiLoBenVenTouch,
+			String tradeTiBenVenEff, String hiLoBenVenEff,
+			String tradeTiBenBPSTouch, String hiLoBenBPSTouch, String tradeTiBenBPsEff,
+			String hiLoBenBPSEff, String tradeTiBenSfallValueTouch,
+			String hiLoBenSfallValueTouch, String tradeTiBenSfallValueEff,
+			String hiLoBenSfallValueEff, BigDecimal xswxBBidPri, Long xswxBBidVol,
+			BigDecimal xswxBOffPri, Long xswxBOffVol, BigDecimal xswxEffBidPri,
+			BigDecimal xswxEffOffPri, BigDecimal bateBBidPri, Long bateBBidVol,
+			BigDecimal bateBOffPri, Long bateBOffVol, BigDecimal bateEffBidPri,
+			BigDecimal bateEffOffPri, BigDecimal chixBBidPri, Long chixBBidVol,
+			BigDecimal chixBOffPri, Long chixBOffVol, BigDecimal chixEffBidPri,
+			BigDecimal chixEffOffPri, BigDecimal trqxBBidPri, Long trqxBBidVol,
+			BigDecimal trqxBOffPri, Long trqxBOffVol, BigDecimal trqxEffBidPri,
+			BigDecimal trqxEffOffPri) {
 		super();
 		this.businessDate = businessDate;
 		this.isin = isin;
@@ -301,7 +284,7 @@ public class Benchmark implements Serializable {
 		this.ccy = ccy;
 		this.fullName = fullName;
 		this.tradeTime = tradeTime;
-		this.tradePrice = tradePrice;
+		this.tradePri = tradePri;
 		this.tradeQty = tradeQty;
 		this.tidm = tidm;
 		this.side = side;
@@ -312,46 +295,46 @@ public class Benchmark implements Serializable {
 		this.participant = participant;
 		this.portfolioManagerID = portfolioManagerID;
 		this.userDefined = userDefined;
-		this.tradeTimeBenchmarkPriceTouch = tradeTimeBenchmarkPriceTouch;
-		this.hiLoBenchmarkPriceTouch = hiLoBenchmarkPriceTouch;
-		this.tradeTimeBenchmarkPriceEffective = tradeTimeBenchmarkPriceEffective;
-		this.hiLoBenchmarkPriceEffective = hiLoBenchmarkPriceEffective;
-		this.tradeTimeBenchmarkVenueTouch = tradeTimeBenchmarkVenueTouch;
-		this.hiLoBenchmarkVenueTouch = hiLoBenchmarkVenueTouch;
-		this.tradeTimeBenchmarkVenueEffective = tradeTimeBenchmarkVenueEffective;
-		this.hiLoBenchmarkVenueEffective = hiLoBenchmarkVenueEffective;
-		this.tradeTimeBenchmarkBPSTouch = tradeTimeBenchmarkBPSTouch;
-		this.hiLoBenchmarkBPSTouch = hiLoBenchmarkBPSTouch;
-		this.tradeTimeBenchmarkBPsEffective = tradeTimeBenchmarkBPsEffective;
-		this.hiLoBenchmarkBPSEffective = hiLoBenchmarkBPSEffective;
-		this.tradeTimeBenchmarkShortfallValueTouch = tradeTimeBenchmarkShortfallValueTouch;
-		this.hiLoBenchmarkShortfallValueTouch = hiLoBenchmarkShortfallValueTouch;
-		this.tradeTimeBenchmarkShortfallValueEffective = tradeTimeBenchmarkShortfallValueEffective;
-		this.hiLoBenchmarkShortfallValueEffective = hiLoBenchmarkShortfallValueEffective;
-		this.xswxBestBidPrice = xswxBestBidPrice;
-		this.xswxBestBidVolume = xswxBestBidVolume;
-		this.xswxBestOfferPrice = xswxBestOfferPrice;
-		this.xswxBestOfferVolume = xswxBestOfferVolume;
-		this.xswxEffectiveBidPrice = xswxEffectiveBidPrice;
-		this.xswxEffectiveOfferPrice = xswxEffectiveOfferPrice;
-		this.bateBestBidPrice = bateBestBidPrice;
-		this.bateBestBidVolume = bateBestBidVolume;
-		this.bateBestOfferPrice = bateBestOfferPrice;
-		this.bateBestOfferVolume = bateBestOfferVolume;
-		this.bateEffectiveBidPrice = bateEffectiveBidPrice;
-		this.bateEffectiveOfferPrice = bateEffectiveOfferPrice;
-		this.chixBestBidPrice = chixBestBidPrice;
-		this.chixBestBidVolume = chixBestBidVolume;
-		this.chixBestOfferPrice = chixBestOfferPrice;
-		this.chixBestOfferVolume = chixBestOfferVolume;
-		this.chixEffectiveBidPrice = chixEffectiveBidPrice;
-		this.chixEffectiveOfferPrice = chixEffectiveOfferPrice;
-		this.trqxBestBidPrice = trqxBestBidPrice;
-		this.trqxBestBidVolume = trqxBestBidVolume;
-		this.trqxBestOfferPrice = trqxBestOfferPrice;
-		this.trqxBestOfferVolume = trqxBestOfferVolume;
-		this.trqxEffectiveBidPrice = trqxEffectiveBidPrice;
-		this.trqxEffectiveOfferPrice = trqxEffectiveOfferPrice;
+		this.tradeTiBenPriTouch = tradeTiBenPriTouch;
+		this.hiLoBenPriTouch = hiLoBenPriTouch;
+		this.tradeTiBenPriEff = tradeTiBenPriEff;
+		this.hiLoBenPriEff = hiLoBenPriEff;
+		this.tradeTiBenVenTouch = tradeTiBenVenTouch;
+		this.hiLoBenVenTouch = hiLoBenVenTouch;
+		this.tradeTiBenVenEff = tradeTiBenVenEff;
+		this.hiLoBenVenEff = hiLoBenVenEff;
+		this.tradeTiBenBPSTouch = tradeTiBenBPSTouch;
+		this.hiLoBenBPSTouch = hiLoBenBPSTouch;
+		this.tradeTiBenBPsEff = tradeTiBenBPsEff;
+		this.hiLoBenBPSEff = hiLoBenBPSEff;
+		this.tradeTiBenSfallValueTouch = tradeTiBenSfallValueTouch;
+		this.hiLoBenSfallValueTouch = hiLoBenSfallValueTouch;
+		this.tradeTiBenSfallValueEff = tradeTiBenSfallValueEff;
+		this.hiLoBenSfallValueEff = hiLoBenSfallValueEff;
+		this.xswxBBidPri = xswxBBidPri;
+		this.xswxBBidVol = xswxBBidVol;
+		this.xswxBOffPri = xswxBOffPri;
+		this.xswxBOffVol = xswxBOffVol;
+		this.xswxEffBidPri = xswxEffBidPri;
+		this.xswxEffOffPri = xswxEffOffPri;
+		this.bateBBidPri = bateBBidPri;
+		this.bateBBidVol = bateBBidVol;
+		this.bateBOffPri = bateBOffPri;
+		this.bateBOffVol = bateBOffVol;
+		this.bateEffBidPri = bateEffBidPri;
+		this.bateEffOffPri = bateEffOffPri;
+		this.chixBBidPri = chixBBidPri;
+		this.chixBBidVol = chixBBidVol;
+		this.chixBOffPri = chixBOffPri;
+		this.chixBOffVol = chixBOffVol;
+		this.chixEffBidPri = chixEffBidPri;
+		this.chixEffOffPri = chixEffOffPri;
+		this.trqxBBidPri = trqxBBidPri;
+		this.trqxBBidVol = trqxBBidVol;
+		this.trqxBOffPri = trqxBOffPri;
+		this.trqxBOffVol = trqxBOffVol;
+		this.trqxEffBidPri = trqxEffBidPri;
+		this.trqxEffOffPri = trqxEffOffPri;
 	}
 	
 	public String getFileName() {
@@ -402,12 +385,12 @@ public class Benchmark implements Serializable {
 		this.tradeTime = tradeTime;
 	}
 
-	public BigDecimal getTradePrice() {
-		return tradePrice;
+	public BigDecimal getTradePri() {
+		return tradePri;
 	}
 
-	public void setTradePrice(BigDecimal tradePrice) {
-		this.tradePrice = tradePrice;
+	public void setTradePri(BigDecimal tradePri) {
+		this.tradePri = tradePri;
 	}
 
 	public Long getTradeQty() {
@@ -498,439 +481,511 @@ public class Benchmark implements Serializable {
 		this.userDefined = userDefined;
 	}
 
-	public BigDecimal getTradeTimeBenchmarkPriceTouch() {
-		return tradeTimeBenchmarkPriceTouch;
+	public BigDecimal getTradeTiBenPriTouch() {
+		return tradeTiBenPriTouch;
 	}
 
-	public void setTradeTimeBenchmarkPriceTouch(BigDecimal tradeTimeBenchmarkPriceTouch) {
-		this.tradeTimeBenchmarkPriceTouch = tradeTimeBenchmarkPriceTouch;
+	public void setTradeTiBenPriTouch(BigDecimal tradeTiBenPriTouch) {
+		this.tradeTiBenPriTouch = tradeTiBenPriTouch;
 	}
 
-	public BigDecimal getHiLoBenchmarkPriceTouch() {
-		return hiLoBenchmarkPriceTouch;
+	public BigDecimal getHiLoBenPriTouch() {
+		return hiLoBenPriTouch;
 	}
 
-	public void setHiLoBenchmarkPriceTouch(BigDecimal hiLoBenchmarkPriceTouch) {
-		this.hiLoBenchmarkPriceTouch = hiLoBenchmarkPriceTouch;
+	public void setHiLoBenPriTouch(BigDecimal hiLoBenPriTouch) {
+		this.hiLoBenPriTouch = hiLoBenPriTouch;
 	}
 
-	public BigDecimal getTradeTimeBenchmarkPriceEffective() {
-		return tradeTimeBenchmarkPriceEffective;
+	public BigDecimal getTradeTiBenPriEff() {
+		return tradeTiBenPriEff;
 	}
 
-	public void setTradeTimeBenchmarkPriceEffective(BigDecimal tradeTimeBenchmarkPriceEffective) {
-		this.tradeTimeBenchmarkPriceEffective = tradeTimeBenchmarkPriceEffective;
+	public void setTradeTiBenPriEff(BigDecimal tradeTiBenPriEff) {
+		this.tradeTiBenPriEff = tradeTiBenPriEff;
 	}
 
-	public BigDecimal getHiLoBenchmarkPriceEffective() {
-		return hiLoBenchmarkPriceEffective;
+	public BigDecimal getHiLoBenPriEff() {
+		return hiLoBenPriEff;
 	}
 
-	public void setHiLoBenchmarkPriceEffective(BigDecimal hiLoBenchmarkPriceEffective) {
-		this.hiLoBenchmarkPriceEffective = hiLoBenchmarkPriceEffective;
+	public void setHiLoBenPriEff(BigDecimal hiLoBenPriEff) {
+		this.hiLoBenPriEff = hiLoBenPriEff;
 	}
 
-	public String getTradeTimeBenchmarkVenueTouch() {
-		return tradeTimeBenchmarkVenueTouch;
+	public String getTradeTiBenVenTouch() {
+		return tradeTiBenVenTouch;
 	}
 
-	public void setTradeTimeBenchmarkVenueTouch(String tradeTimeBenchmarkVenueTouch) {
-		this.tradeTimeBenchmarkVenueTouch = tradeTimeBenchmarkVenueTouch;
+	public void setTradeTiBenVenTouch(String tradeTiBenVenTouch) {
+		this.tradeTiBenVenTouch = tradeTiBenVenTouch;
 	}
 
-	public String getHiLoBenchmarkVenueTouch() {
-		return hiLoBenchmarkVenueTouch;
+	public String getHiLoBenVenTouch() {
+		return hiLoBenVenTouch;
 	}
 
-	public void setHiLoBenchmarkVenueTouch(String hiLoBenchmarkVenueTouch) {
-		this.hiLoBenchmarkVenueTouch = hiLoBenchmarkVenueTouch;
+	public void setHiLoBenVenTouch(String hiLoBenVenTouch) {
+		this.hiLoBenVenTouch = hiLoBenVenTouch;
 	}
 
-	public String getTradeTimeBenchmarkVenueEffective() {
-		return tradeTimeBenchmarkVenueEffective;
+	public String getTradeTiBenVenEff() {
+		return tradeTiBenVenEff;
 	}
 
-	public void setTradeTimeBenchmarkVenueEffective(String tradeTimeBenchmarkVenueEffective) {
-		this.tradeTimeBenchmarkVenueEffective = tradeTimeBenchmarkVenueEffective;
+	public void setTradeTiBenVenEff(String tradeTiBenVenEff) {
+		this.tradeTiBenVenEff = tradeTiBenVenEff;
 	}
 
-	public String getHiLoBenchmarkVenueEffective() {
-		return hiLoBenchmarkVenueEffective;
+	public String getHiLoBenVenEff() {
+		return hiLoBenVenEff;
 	}
 
-	public void setHiLoBenchmarkVenueEffective(String hiLoBenchmarkVenueEffective) {
-		this.hiLoBenchmarkVenueEffective = hiLoBenchmarkVenueEffective;
+	public void setHiLoBenVenEff(String hiLoBenVenEff) {
+		this.hiLoBenVenEff = hiLoBenVenEff;
 	}
 
-	public String getTradeTimeBenchmarkBPSTouch() {
-		return tradeTimeBenchmarkBPSTouch;
+	public String getTradeTiBenBPSTouch() {
+		return tradeTiBenBPSTouch;
 	}
 
-	public void setTradeTimeBenchmarkBPSTouch(String tradeTimeBenchmarkBPSTouch) {
-		this.tradeTimeBenchmarkBPSTouch = tradeTimeBenchmarkBPSTouch;
+	public void setTradeTiBenBPSTouch(String tradeTiBenBPSTouch) {
+		this.tradeTiBenBPSTouch = tradeTiBenBPSTouch;
 	}
 
-	public String getHiLoBenchmarkBPSTouch() {
-		return hiLoBenchmarkBPSTouch;
+	public String getHiLoBenBPSTouch() {
+		return hiLoBenBPSTouch;
 	}
 
-	public void setHiLoBenchmarkBPSTouch(String hiLoBenchmarkBPSTouch) {
-		this.hiLoBenchmarkBPSTouch = hiLoBenchmarkBPSTouch;
+	public void setHiLoBenBPSTouch(String hiLoBenBPSTouch) {
+		this.hiLoBenBPSTouch = hiLoBenBPSTouch;
 	}
 
-	public String getTradeTimeBenchmarkBPsEffective() {
-		return tradeTimeBenchmarkBPsEffective;
+	public String getTradeTiBenBPsEff() {
+		return tradeTiBenBPsEff;
 	}
 
-	public void setTradeTimeBenchmarkBPsEffective(String tradeTimeBenchmarkBPsEffective) {
-		this.tradeTimeBenchmarkBPsEffective = tradeTimeBenchmarkBPsEffective;
+	public void setTradeTiBenBPsEff(String tradeTiBenBPsEff) {
+		this.tradeTiBenBPsEff = tradeTiBenBPsEff;
 	}
 
-	public String getHiLoBenchmarkBPSEffective() {
-		return hiLoBenchmarkBPSEffective;
+	public String getHiLoBenBPSEff() {
+		return hiLoBenBPSEff;
 	}
 
-	public void setHiLoBenchmarkBPSEffective(String hiLoBenchmarkBPSEffective) {
-		this.hiLoBenchmarkBPSEffective = hiLoBenchmarkBPSEffective;
+	public void setHiLoBenBPSEff(String hiLoBenBPSEff) {
+		this.hiLoBenBPSEff = hiLoBenBPSEff;
 	}
 
-	public String getTradeTimeBenchmarkShortfallValueTouch() {
-		return tradeTimeBenchmarkShortfallValueTouch;
+	public String getTradeTiBenSfallValueTouch() {
+		return tradeTiBenSfallValueTouch;
 	}
 
-	public void setTradeTimeBenchmarkShortfallValueTouch(String tradeTimeBenchmarkShortfallValueTouch) {
-		this.tradeTimeBenchmarkShortfallValueTouch = tradeTimeBenchmarkShortfallValueTouch;
+	public void setTradeTiBenSfallValueTouch(String tradeTiBenSfallValueTouch) {
+		this.tradeTiBenSfallValueTouch = tradeTiBenSfallValueTouch;
 	}
 
-	public String getHiLoBenchmarkShortfallValueTouch() {
-		return hiLoBenchmarkShortfallValueTouch;
+	public String getHiLoBenSfallValueTouch() {
+		return hiLoBenSfallValueTouch;
 	}
 
-	public void setHiLoBenchmarkShortfallValueTouch(String hiLoBenchmarkShortfallValueTouch) {
-		this.hiLoBenchmarkShortfallValueTouch = hiLoBenchmarkShortfallValueTouch;
+	public void setHiLoBenSfallValueTouch(String hiLoBenSfallValueTouch) {
+		this.hiLoBenSfallValueTouch = hiLoBenSfallValueTouch;
 	}
 
-	public String getTradeTimeBenchmarkShortfallValueEffective() {
-		return tradeTimeBenchmarkShortfallValueEffective;
+	public String getTradeTiBenSfallValueEff() {
+		return tradeTiBenSfallValueEff;
 	}
 
-	public void setTradeTimeBenchmarkShortfallValueEffective(String tradeTimeBenchmarkShortfallValueEffective) {
-		this.tradeTimeBenchmarkShortfallValueEffective = tradeTimeBenchmarkShortfallValueEffective;
+	public void setTradeTiBenSfallValueEff(String tradeTiBenSfallValueEff) {
+		this.tradeTiBenSfallValueEff = tradeTiBenSfallValueEff;
 	}
 
-	public String getHiLoBenchmarkShortfallValueEffective() {
-		return hiLoBenchmarkShortfallValueEffective;
+	public String getHiLoBenSfallValueEff() {
+		return hiLoBenSfallValueEff;
 	}
 
-	public void setHiLoBenchmarkShortfallValueEffective(String hiLoBenchmarkShortfallValueEffective) {
-		this.hiLoBenchmarkShortfallValueEffective = hiLoBenchmarkShortfallValueEffective;
+	public void setHiLoBenSfallValueEff(String hiLoBenSfallValueEff) {
+		this.hiLoBenSfallValueEff = hiLoBenSfallValueEff;
 	}
 
-	public BigDecimal getXswxBestBidPrice() {
-		return xswxBestBidPrice;
+	public BigDecimal getXswxBBidPri() {
+		return xswxBBidPri;
 	}
 
-	public void setXswxBestBidPrice(BigDecimal xswxBestBidPrice) {
-		this.xswxBestBidPrice = xswxBestBidPrice;
+	public void setXswxBBidPri(BigDecimal xswxBBidPri) {
+		this.xswxBBidPri = xswxBBidPri;
 	}
 
-	public Long getXswxBestBidVolume() {
-		return xswxBestBidVolume;
+	public Long getXswxBBidVol() {
+		return xswxBBidVol;
 	}
 
-	public void setXswxBestBidVolume(Long xswxBestBidVolume) {
-		this.xswxBestBidVolume = xswxBestBidVolume;
+	public void setXswxBBidVol(Long xswxBBidVol) {
+		this.xswxBBidVol = xswxBBidVol;
 	}
 
-	public BigDecimal getXswxBestOfferPrice() {
-		return xswxBestOfferPrice;
+	public BigDecimal getXswxBOffPri() {
+		return xswxBOffPri;
 	}
 
-	public void setXswxBestOfferPrice(BigDecimal xswxBestOfferPrice) {
-		this.xswxBestOfferPrice = xswxBestOfferPrice;
+	public void setXswxBOffPri(BigDecimal xswxBOffPri) {
+		this.xswxBOffPri = xswxBOffPri;
 	}
 
-	public Long getXswxBestOfferVolume() {
-		return xswxBestOfferVolume;
+	public Long getXswxBOffVol() {
+		return xswxBOffVol;
 	}
 
-	public void setXswxBestOfferVolume(Long xswxBestOfferVolume) {
-		this.xswxBestOfferVolume = xswxBestOfferVolume;
+	public void setXswxBOffVol(Long xswxBOffVol) {
+		this.xswxBOffVol = xswxBOffVol;
 	}
 
-	public BigDecimal getXswxEffectiveBidPrice() {
-		return xswxEffectiveBidPrice;
+	public BigDecimal getXswxEffBidPri() {
+		return xswxEffBidPri;
 	}
 
-	public void setXswxEffectiveBidPrice(BigDecimal xswxEffectiveBidPrice) {
-		this.xswxEffectiveBidPrice = xswxEffectiveBidPrice;
+	public void setXswxEffBidPri(BigDecimal xswxEffBidPri) {
+		this.xswxEffBidPri = xswxEffBidPri;
 	}
 
-	public BigDecimal getXswxEffectiveOfferPrice() {
-		return xswxEffectiveOfferPrice;
+	public BigDecimal getXswxEffOffPri() {
+		return xswxEffOffPri;
 	}
 
-	public void setXswxEffectiveOfferPrice(BigDecimal xswxEffectiveOfferPrice) {
-		this.xswxEffectiveOfferPrice = xswxEffectiveOfferPrice;
+	public void setXswxEffOffPri(BigDecimal xswxEffOffPri) {
+		this.xswxEffOffPri = xswxEffOffPri;
 	}
 
-	public BigDecimal getBateBestBidPrice() {
-		return bateBestBidPrice;
+	public BigDecimal getBateBBidPri() {
+		return bateBBidPri;
 	}
 
-	public void setBateBestBidPrice(BigDecimal bateBestBidPrice) {
-		this.bateBestBidPrice = bateBestBidPrice;
+	public void setBateBBidPri(BigDecimal bateBBidPri) {
+		this.bateBBidPri = bateBBidPri;
 	}
 
-	public Long getBateBestBidVolume() {
-		return bateBestBidVolume;
+	public Long getBateBBidVol() {
+		return bateBBidVol;
 	}
 
-	public void setBateBestBidVolume(Long bateBestBidVolume) {
-		this.bateBestBidVolume = bateBestBidVolume;
+	public void setBateBBidVol(Long bateBBidVol) {
+		this.bateBBidVol = bateBBidVol;
 	}
 
-	public BigDecimal getBateBestOfferPrice() {
-		return bateBestOfferPrice;
+	public BigDecimal getBateBOffPri() {
+		return bateBOffPri;
 	}
 
-	public void setBateBestOfferPrice(BigDecimal bateBestOfferPrice) {
-		this.bateBestOfferPrice = bateBestOfferPrice;
+	public void setBateBOffPri(BigDecimal bateBOffPri) {
+		this.bateBOffPri = bateBOffPri;
 	}
 
-	public Long getBateBestOfferVolume() {
-		return bateBestOfferVolume;
+	public Long getBateBOffVol() {
+		return bateBOffVol;
 	}
 
-	public void setBateBestOfferVolume(Long bateBestOfferVolume) {
-		this.bateBestOfferVolume = bateBestOfferVolume;
+	public void setBateBOffVol(Long bateBOffVol) {
+		this.bateBOffVol = bateBOffVol;
 	}
 
-	public BigDecimal getBateEffectiveBidPrice() {
-		return bateEffectiveBidPrice;
+	public BigDecimal getBateEffBidPri() {
+		return bateEffBidPri;
 	}
 
-	public void setBateEffectiveBidPrice(BigDecimal bateEffectiveBidPrice) {
-		this.bateEffectiveBidPrice = bateEffectiveBidPrice;
+	public void setBateEffBidPri(BigDecimal bateEffBidPri) {
+		this.bateEffBidPri = bateEffBidPri;
 	}
 
-	public BigDecimal getBateEffectiveOfferPrice() {
-		return bateEffectiveOfferPrice;
+	public BigDecimal getBateEffOffPri() {
+		return bateEffOffPri;
 	}
 
-	public void setBateEffectiveOfferPrice(BigDecimal bateEffectiveOfferPrice) {
-		this.bateEffectiveOfferPrice = bateEffectiveOfferPrice;
+	public void setBateEffOffPri(BigDecimal bateEffOffPri) {
+		this.bateEffOffPri = bateEffOffPri;
 	}
 
-	public BigDecimal getChixBestBidPrice() {
-		return chixBestBidPrice;
+	public BigDecimal getChixBBidPri() {
+		return chixBBidPri;
 	}
 
-	public void setChixBestBidPrice(BigDecimal chixBestBidPrice) {
-		this.chixBestBidPrice = chixBestBidPrice;
+	public void setChixBBidPri(BigDecimal chixBBidPri) {
+		this.chixBBidPri = chixBBidPri;
 	}
 
-	public Long getChixBestBidVolume() {
-		return chixBestBidVolume;
+	public Long getChixBBidVol() {
+		return chixBBidVol;
 	}
 
-	public void setChixBestBidVolume(Long chixBestBidVolume) {
-		this.chixBestBidVolume = chixBestBidVolume;
+	public void setChixBBidVol(Long chixBBidVol) {
+		this.chixBBidVol = chixBBidVol;
 	}
 
-	public BigDecimal getChixBestOfferPrice() {
-		return chixBestOfferPrice;
+	public BigDecimal getChixBOffPri() {
+		return chixBOffPri;
 	}
 
-	public void setChixBestOfferPrice(BigDecimal chixBestOfferPrice) {
-		this.chixBestOfferPrice = chixBestOfferPrice;
+	public void setChixBOffPri(BigDecimal chixBOffPri) {
+		this.chixBOffPri = chixBOffPri;
 	}
 
-	public Long getChixBestOfferVolume() {
-		return chixBestOfferVolume;
+	public Long getChixBOffVol() {
+		return chixBOffVol;
 	}
 
-	public void setChixBestOfferVolume(Long chixBestOfferVolume) {
-		this.chixBestOfferVolume = chixBestOfferVolume;
+	public void setChixBOffVol(Long chixBOffVol) {
+		this.chixBOffVol = chixBOffVol;
 	}
 
-	public BigDecimal getChixEffectiveBidPrice() {
-		return chixEffectiveBidPrice;
+	public BigDecimal getChixEffBidPri() {
+		return chixEffBidPri;
 	}
 
-	public void setChixEffectiveBidPrice(BigDecimal chixEffectiveBidPrice) {
-		this.chixEffectiveBidPrice = chixEffectiveBidPrice;
+	public void setChixEffBidPri(BigDecimal chixEffBidPri) {
+		this.chixEffBidPri = chixEffBidPri;
 	}
 
-	public BigDecimal getChixEffectiveOfferPrice() {
-		return chixEffectiveOfferPrice;
+	public BigDecimal getChixEffOffPri() {
+		return chixEffOffPri;
 	}
 
-	public void setChixEffectiveOfferPrice(BigDecimal chixEffectiveOfferPrice) {
-		this.chixEffectiveOfferPrice = chixEffectiveOfferPrice;
+	public void setChixEffOffPri(BigDecimal chixEffOffPri) {
+		this.chixEffOffPri = chixEffOffPri;
 	}
 
-	public BigDecimal getTrqxBestBidPrice() {
-		return trqxBestBidPrice;
+	public BigDecimal getTrqxBBidPri() {
+		return trqxBBidPri;
 	}
 
-	public void setTrqxBestBidPrice(BigDecimal trqxBestBidPrice) {
-		this.trqxBestBidPrice = trqxBestBidPrice;
+	public void setTrqxBBidPri(BigDecimal trqxBBidPri) {
+		this.trqxBBidPri = trqxBBidPri;
 	}
 
-	public Long getTrqxBestBidVolume() {
-		return trqxBestBidVolume;
+	public Long getTrqxBBidVol() {
+		return trqxBBidVol;
 	}
 
-	public void setTrqxBestBidVolume(Long trqxBestBidVolume) {
-		this.trqxBestBidVolume = trqxBestBidVolume;
+	public void setTrqxBBidVol(Long trqxBBidVol) {
+		this.trqxBBidVol = trqxBBidVol;
 	}
 
-	public BigDecimal getTrqxBestOfferPrice() {
-		return trqxBestOfferPrice;
+	public BigDecimal getTrqxBOffPri() {
+		return trqxBOffPri;
 	}
 
-	public void setTrqxBestOfferPrice(BigDecimal trqxBestOfferPrice) {
-		this.trqxBestOfferPrice = trqxBestOfferPrice;
+	public void setTrqxBOffPri(BigDecimal trqxBOffPri) {
+		this.trqxBOffPri = trqxBOffPri;
 	}
 
-	public Long getTrqxBestOfferVolume() {
-		return trqxBestOfferVolume;
+	public Long getTrqxBOffVol() {
+		return trqxBOffVol;
 	}
 
-	public void setTrqxBestOfferVolume(Long trqxBestOfferVolume) {
-		this.trqxBestOfferVolume = trqxBestOfferVolume;
+	public void setTrqxBOffVol(Long trqxBOffVol) {
+		this.trqxBOffVol = trqxBOffVol;
 	}
 
-	public BigDecimal getTrqxEffectiveBidPrice() {
-		return trqxEffectiveBidPrice;
+	public BigDecimal getTrqxEffBidPri() {
+		return trqxEffBidPri;
 	}
 
-	public void setTrqxEffectiveBidPrice(BigDecimal trqxEffectiveBidPrice) {
-		this.trqxEffectiveBidPrice = trqxEffectiveBidPrice;
+	public void setTrqxEffBidPri(BigDecimal trqxEffBidPri) {
+		this.trqxEffBidPri = trqxEffBidPri;
 	}
 
-	public BigDecimal getTrqxEffectiveOfferPrice() {
-		return trqxEffectiveOfferPrice;
+	public BigDecimal getTrqxEffOffPri() {
+		return trqxEffOffPri;
 	}
 
-	public void setTrqxEffectiveOfferPrice(BigDecimal trqxEffectiveOfferPrice) {
-		this.trqxEffectiveOfferPrice = trqxEffectiveOfferPrice;
+	public void setTrqxEffOffPri(BigDecimal trqxEffOffPri) {
+		this.trqxEffOffPri = trqxEffOffPri;
 	}
 	
-	public BigDecimal getBestBidPriceXSWXDiffBATE() {
-        return bestBidPriceXSWXDiffBATE;
+	public BigDecimal getBBidPriXSWXDiffBATE() {
+        return BBidPriXSWXDiffBATE;
     }
 
-    public void setBestBidPriceXSWXDiffBATE(BigDecimal bestBidPriceXSWXDiffBATE) {
-        this.bestBidPriceXSWXDiffBATE = bestBidPriceXSWXDiffBATE;
+    public void setBBidPriXSWXDiffBATE(BigDecimal BBidPriXSWXDiffBATE) {
+        this.BBidPriXSWXDiffBATE = BBidPriXSWXDiffBATE;
     }
 
-    public BigDecimal getBestBidPriceXSWXDiffCHIX() {
-        return bestBidPriceXSWXDiffCHIX;
+    public BigDecimal getBBidPriXSWXDiffCHIX() {
+        return BBidPriXSWXDiffCHIX;
     }
 
-    public void setBestBidPriceXSWXDiffCHIX(BigDecimal bestBidPriceXSWXDiffCHIX) {
-        this.bestBidPriceXSWXDiffCHIX = bestBidPriceXSWXDiffCHIX;
+    public void setBBidPriXSWXDiffCHIX(BigDecimal BBidPriXSWXDiffCHIX) {
+        this.BBidPriXSWXDiffCHIX = BBidPriXSWXDiffCHIX;
     }
 
-    public BigDecimal getBestBidPriceXSWXDiffTRQX() {
-        return bestBidPriceXSWXDiffTRQX;
+    public BigDecimal getBBidPriXSWXDiffTRQX() {
+        return BBidPriXSWXDiffTRQX;
     }
 
-    public void setBestBidPriceXSWXDiffTRQX(BigDecimal bestBidPriceXSWXDiffTRQX) {
-        this.bestBidPriceXSWXDiffTRQX = bestBidPriceXSWXDiffTRQX;
+    public void setBBidPriXSWXDiffTRQX(BigDecimal BBidPriXSWXDiffTRQX) {
+        this.BBidPriXSWXDiffTRQX = BBidPriXSWXDiffTRQX;
     }
 
     public BigDecimal getSpreadXswx() {
 		return spreadXswx;
 	}
 
-	public void setSpreadXswx(BigDecimal bestSpreadXswx) {
-		this.spreadXswx = bestSpreadXswx;
+	public void setSpreadXswx(BigDecimal BSpreadXswx) {
+		this.spreadXswx = BSpreadXswx;
 	}
 
 	public BigDecimal getSpreadBate() {
 		return spreadBate;
 	}
 
-	public void setSpreadBate(BigDecimal bestSpreadBate) {
-		this.spreadBate = bestSpreadBate;
+	public void setSpreadBate(BigDecimal BSpreadBate) {
+		this.spreadBate = BSpreadBate;
 	}
 
 	public BigDecimal getSpreadChix() {
 		return spreadChix;
 	}
 
-	public void setSpreadChix(BigDecimal bestSpreadChix) {
-		this.spreadChix = bestSpreadChix;
+	public void setSpreadChix(BigDecimal BSpreadChix) {
+		this.spreadChix = BSpreadChix;
 	}
 
 	public BigDecimal getSpreadTrqx() {
 		return spreadTrqx;
 	}
 
-	public void setSpreadTrqx(BigDecimal bestSpreadTrqx) {
-		this.spreadTrqx = bestSpreadTrqx;
+	public void setSpreadTrqx(BigDecimal BSpreadTrqx) {
+		this.spreadTrqx = BSpreadTrqx;
 	}
 
-	public String getHighestBidPriceRanking() {
-		return highestBidPriceRanking;
+	public String gethighBidPriRanking() {
+		return highBidPriRanking;
 	}
 
-	public void setHighestBidPriceRanking(String highestBidPriceRanking) {
-		this.highestBidPriceRanking = highestBidPriceRanking;
+	public void sethighBidPriRanking(String highBidPriRanking) {
+		this.highBidPriRanking = highBidPriRanking;
 	}
 
-	public String getLowestOfferPriceRanking() {
-		return lowestOfferPriceRanking;
+	public String getlowOffPriRanking() {
+		return lowOffPriRanking;
 	}
 
-	public void setLowestOfferPriceRanking(String lowestOfferPriceRanking) {
-		this.lowestOfferPriceRanking = lowestOfferPriceRanking;
+	public void setlowOffPriRanking(String lowOffPriRanking) {
+		this.lowOffPriRanking = lowOffPriRanking;
 	}
 
 	
-	public String getHighestBidPriceVenue() {
-		return highestBidPriceVenue;
+	public String gethighBidPriVen() {
+		return highBidPriVen;
 	}
 
-	public void setHighestBidPriceVenue(String highestBidPriceVenue) {
-		this.highestBidPriceVenue = highestBidPriceVenue;
+	public void sethighBidPriVen(String highBidPriVen) {
+		this.highBidPriVen = highBidPriVen;
+	}
+	
+	public BigDecimal getAqxeBBidPri() {
+		return aqxeBBidPri;
+	}
+
+	public void setAqxeBBidPri(BigDecimal aqxeBBidPri) {
+		this.aqxeBBidPri = aqxeBBidPri;
+	}
+
+	public Long getAqxeBBidVol() {
+		return aqxeBBidVol;
+	}
+
+	public void setAqxeBBidVol(Long aqxeBBidVol) {
+		this.aqxeBBidVol = aqxeBBidVol;
+	}
+
+	public BigDecimal getAqxeBOffPri() {
+		return aqxeBOffPri;
+	}
+
+	public void setAqxeBOffPri(BigDecimal aqxeBOffPri) {
+		this.aqxeBOffPri = aqxeBOffPri;
+	}
+
+	public Long getAqxeBOffVol() {
+		return aqxeBOffVol;
+	}
+
+	public void setAqxeBOffVol(Long aqxeBOffVol) {
+		this.aqxeBOffVol = aqxeBOffVol;
+	}
+
+	public BigDecimal getAqxeEffBidPri() {
+		return aqxeEffBidPri;
+	}
+
+	public void setAqxeEffBidPri(BigDecimal aqxeEffBidPri) {
+		this.aqxeEffBidPri = aqxeEffBidPri;
+	}
+
+	public BigDecimal getAqxeEffOffPri() {
+		return aqxeEffOffPri;
+	}
+
+	public void setAqxeEffOffPri(BigDecimal aqxeEffOffPri) {
+		this.aqxeEffOffPri = aqxeEffOffPri;
+	}
+
+	public BigDecimal getBBidPriXSWXDiffAQXE() {
+		return BBidPriXSWXDiffAQXE;
+	}
+
+	public void setBBidPriXSWXDiffAQXE(BigDecimal BBidPriXSWXDiffAQXE) {
+		this.BBidPriXSWXDiffAQXE = BBidPriXSWXDiffAQXE;
+	}
+
+	public BigDecimal getSpreadAqxe() {
+		return spreadAqxe;
+	}
+
+	public void setSpreadAqxe(BigDecimal spreadAqxe) {
+		this.spreadAqxe = spreadAqxe;
+	}
+
+	public String getBusinessMonth() {
+		return businessMonth;
+	}
+
+	public void setBusinessMonth(String businessMonth) {
+		this.businessMonth = businessMonth;
 	}
 
 	@Override
 	public String toString() {
-		return "Benchmark [businessDate=" + businessDate + ", isin=" + isin + ", tradeID=" + tradeID + ", fileName="
-				+ fileName + ", ccy=" + ccy + ", fullName=" + fullName + ", tradeTime=" + tradeTime + ", tradePrice="
-				+ tradePrice + ", tradeQty=" + tradeQty + ", tidm=" + tidm + ", side=" + side + ", tradingNetworkID="
+		return "Ben [businessDate=" + businessDate + ", isin=" + isin + ", tradeID=" + tradeID + ", fileName="
+				+ fileName + ", ccy=" + ccy + ", fullName=" + fullName + ", tradeTime=" + tradeTime + ", tradePri="
+				+ tradePri + ", tradeQty=" + tradeQty + ", tidm=" + tidm + ", side=" + side + ", tradingNetworkID="
 				+ tradingNetworkID + ", trader=" + trader + ", counterparty=" + counterparty + ", orderRef=" + orderRef
 				+ ", participant=" + participant + ", portfolioManagerID=" + portfolioManagerID + ", userDefined="
-				+ userDefined + ", tradeTimeBenchmarkPriceTouch=" + tradeTimeBenchmarkPriceTouch
-				+ ", hiLoBenchmarkPriceTouch=" + hiLoBenchmarkPriceTouch + ", tradeTimeBenchmarkPriceEffective="
-				+ tradeTimeBenchmarkPriceEffective + ", hiLoBenchmarkPriceEffective=" + hiLoBenchmarkPriceEffective
-				+ ", tradeTimeBenchmarkVenueTouch=" + tradeTimeBenchmarkVenueTouch + ", hiLoBenchmarkVenueTouch="
-				+ hiLoBenchmarkVenueTouch + ", tradeTimeBenchmarkVenueEffective=" + tradeTimeBenchmarkVenueEffective
-				+ ", hiLoBenchmarkVenueEffective=" + hiLoBenchmarkVenueEffective + ", tradeTimeBenchmarkBPSTouch="
-				+ tradeTimeBenchmarkBPSTouch + ", hiLoBenchmarkBPSTouch=" + hiLoBenchmarkBPSTouch
-				+ ", tradeTimeBenchmarkBPsEffective=" + tradeTimeBenchmarkBPsEffective + ", hiLoBenchmarkBPSEffective="
-				+ hiLoBenchmarkBPSEffective + ", tradeTimeBenchmarkShortfallValueTouch="
-				+ tradeTimeBenchmarkShortfallValueTouch + ", hiLoBenchmarkShortfallValueTouch="
-				+ hiLoBenchmarkShortfallValueTouch + ", tradeTimeBenchmarkShortfallValueEffective="
-				+ tradeTimeBenchmarkShortfallValueEffective + ", hiLoBenchmarkShortfallValueEffective="
-				+ hiLoBenchmarkShortfallValueEffective + ", xswxBestBidPrice=" + xswxBestBidPrice
-				+ ", xswxBestBidVolume=" + xswxBestBidVolume + ", xswxBestOfferPrice=" + xswxBestOfferPrice
-				+ ", xswxBestOfferVolume=" + xswxBestOfferVolume + ", xswxEffectiveBidPrice=" + xswxEffectiveBidPrice
-				+ ", xswxEffectiveOfferPrice=" + xswxEffectiveOfferPrice + ", bateBestBidPrice=" + bateBestBidPrice
-				+ ", bateBestBidVolume=" + bateBestBidVolume + ", bateBestOfferPrice=" + bateBestOfferPrice
-				+ ", bateBestOfferVolume=" + bateBestOfferVolume + ", bateEffectiveBidPrice=" + bateEffectiveBidPrice
-				+ ", bateEffectiveOfferPrice=" + bateEffectiveOfferPrice + ", chixBestBidPrice=" + chixBestBidPrice
-				+ ", chixBestBidVolume=" + chixBestBidVolume + ", chixBestOfferPrice=" + chixBestOfferPrice
-				+ ", chixBestOfferVolume=" + chixBestOfferVolume + ", chixEffectiveBidPrice=" + chixEffectiveBidPrice
-				+ ", chixEffectiveOfferPrice=" + chixEffectiveOfferPrice + ", trqxBestBidPrice=" + trqxBestBidPrice
-				+ ", trqxBestBidVolume=" + trqxBestBidVolume + ", trqxBestOfferPrice=" + trqxBestOfferPrice
-				+ ", trqxBestOfferVolume=" + trqxBestOfferVolume + ", trqxEffectiveBidPrice=" + trqxEffectiveBidPrice
-				+ ", trqxEffectiveOfferPrice=" + trqxEffectiveOfferPrice + "]";
+				+ userDefined + ", tradeTiBenPriTouch=" + tradeTiBenPriTouch
+				+ ", hiLoBenPriTouch=" + hiLoBenPriTouch + ", tradeTiBenPriEff="
+				+ tradeTiBenPriEff + ", hiLoBenPriEff=" + hiLoBenPriEff
+				+ ", tradeTiBenVenTouch=" + tradeTiBenVenTouch + ", hiLoBenVenTouch="
+				+ hiLoBenVenTouch + ", tradeTiBenVenEff=" + tradeTiBenVenEff
+				+ ", hiLoBenVenEff=" + hiLoBenVenEff + ", tradeTiBenBPSTouch="
+				+ tradeTiBenBPSTouch + ", hiLoBenBPSTouch=" + hiLoBenBPSTouch
+				+ ", tradeTiBenBPsEff=" + tradeTiBenBPsEff + ", hiLoBenBPSEff="
+				+ hiLoBenBPSEff + ", tradeTiBenSfallValueTouch="
+				+ tradeTiBenSfallValueTouch + ", hiLoBenSfallValueTouch="
+				+ hiLoBenSfallValueTouch + ", tradeTiBenSfallValueEff="
+				+ tradeTiBenSfallValueEff + ", hiLoBenSfallValueEff="
+				+ hiLoBenSfallValueEff + ", xswxBBidPri=" + xswxBBidPri
+				+ ", xswxBBidVol=" + xswxBBidVol + ", xswxBOffPri=" + xswxBOffPri
+				+ ", xswxBOffVol=" + xswxBOffVol + ", xswxEffBidPri=" + xswxEffBidPri
+				+ ", xswxEffOffPri=" + xswxEffOffPri + ", bateBBidPri=" + bateBBidPri
+				+ ", bateBBidVol=" + bateBBidVol + ", bateBOffPri=" + bateBOffPri
+				+ ", bateBOffVol=" + bateBOffVol + ", bateEffBidPri=" + bateEffBidPri
+				+ ", bateEffOffPri=" + bateEffOffPri + ", chixBBidPri=" + chixBBidPri
+				+ ", chixBBidVol=" + chixBBidVol + ", chixBOffPri=" + chixBOffPri
+				+ ", chixBOffVol=" + chixBOffVol + ", chixEffBidPri=" + chixEffBidPri
+				+ ", chixEffOffPri=" + chixEffOffPri + ", trqxBBidPri=" + trqxBBidPri
+				+ ", trqxBBidVol=" + trqxBBidVol + ", trqxBOffPri=" + trqxBOffPri
+				+ ", trqxBOffVol=" + trqxBOffVol + ", trqxEffBidPri=" + trqxEffBidPri
+				+ ", trqxEffOffPri=" + trqxEffOffPri + "]";
 	}
 
 	private static BigDecimal setBigDecimal(final String value) {
