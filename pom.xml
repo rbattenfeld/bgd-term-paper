@@ -13,6 +13,7 @@
        <module>cassandra</module>
        <module>benchmark</module>
        <module>spark</module>
+<!--        <module>toxicity</module> -->
     </modules>
 
 

@@ -7,7 +7,7 @@
 	<version>1.0</version>
 	<packaging>jar</packaging>
 
-	<name>BIG DATA POC :: TOXICITY</name>
+	<name>BIG DATA POC :: toxicity</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -44,11 +44,11 @@
 			<version>3.1.0</version>
 		</dependency>
 
-        <dependency>
-	        <groupId>com.oracle</groupId>
-	        <artifactId>ojdbc6</artifactId>
-	        <version>11.2.0.3</version>
-        </dependency>
+<!--         <dependency> -->
+<!-- 	        <groupId>com.oracle</groupId> -->
+<!-- 	        <artifactId>ojdbc6</artifactId> -->
+<!-- 	        <version>11.2.0.3</version> -->
+<!--         </dependency> -->
         
 		<dependency>
 			<groupId>com.google.guava</groupId>
